@@ -328,6 +328,7 @@ export interface PptxSlideModel {
   background?: PptxFillModel;
   shapes: (PptxTextBoxModel | PptxAutoShapeBoxModel | PptxConnectorModel | PptxPictureBoxModel)[];
   note?: string;
+  screenshot_src?: string;
 }
 
 export interface PptxPresentationModel {

@@ -40,6 +40,10 @@ export async function GET(request: NextRequest) {
     const screenshotsDir = getScreenshotsDir();
 
     const { slides, speakerNotes } = await getSlidesAndSpeakerNotes(page);
+
+    // Take a full screenshot of each slide for thumbnails
+    const slideScreenshotPaths = await takeSlideScreenshots(slides, screenshotsDir);
+
     const slides_attributes = await getSlidesAttributes(slides, screenshotsDir);
     await postProcessSlidesAttributes(
       slides_attributes,
@@ -48,8 +52,14 @@ export async function GET(request: NextRequest) {
     );
     const slides_pptx_models =
       convertElementAttributesToPptxSlides(slides_attributes);
+
+    const slidesWithThumbnails = slides_pptx_models.map((slide, index) => ({
+      ...slide,
+      screenshot_src: slideScreenshotPaths[index],
+    }));
+
     const presentation_pptx_model: PptxPresentationModel = {
-      slides: slides_pptx_models,
+      slides: slidesWithThumbnails,
     };
 
     await closeBrowserAndPage(browser, page);
@@ -240,6 +250,20 @@ const convertSvgToPng = async (element_attibutes: ElementAttributes) => {
     .toBuffer();
   return pngBuffer;
 };
+
+async function takeSlideScreenshots(
+  slides: ElementHandle<Element>[],
+  screenshotsDir: string
+): Promise<string[]> {
+  const screenshotPaths: string[] = [];
+  for (let i = 0; i < slides.length; i++) {
+    const screenshotPath = path.join(screenshotsDir, `slide_thumbnail_${i}.png`) as `${string}.png`;
+    await slides[i].screenshot({ path: screenshotPath });
+    screenshotPaths.push(screenshotPath);
+  }
+ 
+  return screenshotPaths;
+}
 
 async function getSlidesAttributes(
   slides: ElementHandle<Element>[],
