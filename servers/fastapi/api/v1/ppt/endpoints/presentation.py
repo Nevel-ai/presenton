@@ -5,10 +5,11 @@ import math
 import os
 import random
 import traceback
+import base64
 from typing import Annotated, List, Literal, Optional, Tuple
 import dirtyjson
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Path
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import Response, StreamingResponse, FileResponse
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -111,6 +112,32 @@ async def get_presentation(
     return PresentationWithSlides(
         **presentation.model_dump(),
         slides=slides,
+    )
+
+
+@PRESENTATION_ROUTER.get(
+    "/thumbnail/{id}",
+    responses={200: {"content": {"image/png": {}}, "description": "Presentation thumbnail image"}},
+)
+async def get_presentation_thumbnail(
+    id: uuid.UUID,
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    """Return the first-slide thumbnail image for a presentation."""
+    presentation = await sql_session.get(PresentationModel, id)
+
+    if not presentation:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+
+    if not presentation.thumbnail_base64:
+        raise HTTPException(status_code=404, detail="Thumbnail not available for this presentation")
+
+    image_bytes = base64.b64decode(presentation.thumbnail_base64)
+
+    return Response(
+        content=image_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'inline; filename="thumbnail_{id}.png"'},
     )
 
 

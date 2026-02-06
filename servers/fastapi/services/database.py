@@ -72,6 +72,9 @@ async def create_db_and_tables():
         await conn.execute(
             text("ALTER TABLE imageasset ADD COLUMN IF NOT EXISTS s3_url VARCHAR")
         )
+        await conn.execute(
+            text("ALTER TABLE presentations ADD COLUMN IF NOT EXISTS thumbnail_base64 TEXT")
+        )
 
     async with container_db_engine.begin() as conn:
         await conn.run_sync(

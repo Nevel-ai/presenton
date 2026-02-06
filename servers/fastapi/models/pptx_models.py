@@ -157,6 +157,7 @@ class PptxConnectorModel(PptxShapeModel):
 class PptxSlideModel(BaseModel):
     background: Optional[PptxFillModel] = None
     note: Optional[str] = None
+    screenshot_src: Optional[str] = None
     shapes: List[
         PptxTextBoxModel
         | PptxAutoShapeBoxModel

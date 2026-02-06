@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import aiohttp
@@ -8,10 +9,45 @@ from pathvalidate import sanitize_filename
 
 from models.pptx_models import PptxPresentationModel
 from models.presentation_and_path import PresentationAndPath
+from models.sql.presentation import PresentationModel
+from services.database import async_session_maker
 from services.pptx_presentation_creator import PptxPresentationCreator
 from services.temp_file_service import TEMP_FILE_SERVICE
 from utils.asset_directory_utils import get_exports_directory
 import uuid
+
+
+async def _save_presentation_thumbnail(
+    pptx_model: PptxPresentationModel, presentation_id: uuid.UUID
+) -> None:
+    """
+    Read the first slide's screenshot, encode it as base64, and store it
+    directly on the PresentationModel. Clean up all screenshot temp files.
+    """
+    thumbnail_base64 = None
+
+    for slide in pptx_model.slides:
+        if not slide.screenshot_src or not os.path.exists(slide.screenshot_src):
+            continue
+
+        # Encode the first available slide as the presentation thumbnail
+        if thumbnail_base64 is None:
+            with open(slide.screenshot_src, "rb") as f:
+                thumbnail_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+        # Clean up all screenshot temp files
+        try:
+            os.remove(slide.screenshot_src)
+        except OSError:
+            pass
+
+    if thumbnail_base64:
+        async with async_session_maker() as sql_session:
+            presentation = await sql_session.get(PresentationModel, presentation_id)
+            if presentation:
+                presentation.thumbnail_base64 = thumbnail_base64
+                sql_session.add(presentation)
+                await sql_session.commit()
 
 
 async def export_presentation(
@@ -35,6 +71,10 @@ async def export_presentation(
 
         # Create PPTX file using the converted model
         pptx_model = PptxPresentationModel(**pptx_model_data)
+
+        # Encode first slide screenshot as base64 and save as presentation thumbnail
+        await _save_presentation_thumbnail(pptx_model, presentation_id)
+
         temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
         pptx_creator = PptxPresentationCreator(pptx_model, temp_dir)
         await pptx_creator.create_ppt()
