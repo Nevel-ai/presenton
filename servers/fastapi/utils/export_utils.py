@@ -1,53 +1,68 @@
-import base64
-import json
 import os
 import aiohttp
-from typing import Literal
+from typing import List, Literal, Optional
 import uuid
 from fastapi import HTTPException
 from pathvalidate import sanitize_filename
+from sqlmodel import select
 
 from models.pptx_models import PptxPresentationModel
 from models.presentation_and_path import PresentationAndPath
-from models.sql.presentation import PresentationModel
+from models.sql.slide import SlideModel
 from services.database import async_session_maker
 from services.pptx_presentation_creator import PptxPresentationCreator
 from services.temp_file_service import TEMP_FILE_SERVICE
 from utils.asset_directory_utils import get_exports_directory
-import uuid
+from utils.s3_utils import upload_file_to_s3
 
 
-async def _save_presentation_thumbnail(
+async def _save_slide_previews(
     pptx_model: PptxPresentationModel, presentation_id: uuid.UUID
 ) -> None:
     """
-    Read the first slide's screenshot, encode it as base64, and store it
-    directly on the PresentationModel. Clean up all screenshot temp files.
+    Upload each slide's screenshot to S3, store the S3 object key on the
+    corresponding SlideModel (preview_s3_key), and clean up temp files.
     """
-    thumbnail_base64 = None
+    # Collect S3 keys per slide index
+    s3_keys: List[Optional[str]] = []
 
-    for slide in pptx_model.slides:
+    for idx, slide in enumerate(pptx_model.slides):
         if not slide.screenshot_src or not os.path.exists(slide.screenshot_src):
+            s3_keys.append(None)
             continue
 
-        # Encode the first available slide as the presentation thumbnail
-        if thumbnail_base64 is None:
-            with open(slide.screenshot_src, "rb") as f:
-                thumbnail_base64 = base64.b64encode(f.read()).decode("utf-8")
+        # Upload screenshot to S3
+        s3_key = await upload_file_to_s3(
+            slide.screenshot_src,
+            postfix=f"preview/{presentation_id}",
+        )
+        s3_keys.append(s3_key)
 
-        # Clean up all screenshot temp files
+        # Clean up temp screenshot file
         try:
             os.remove(slide.screenshot_src)
         except OSError:
             pass
 
-    if thumbnail_base64:
-        async with async_session_maker() as sql_session:
-            presentation = await sql_session.get(PresentationModel, presentation_id)
-            if presentation:
-                presentation.thumbnail_base64 = thumbnail_base64
-                sql_session.add(presentation)
-                await sql_session.commit()
+    # Persist S3 keys on the corresponding SlideModel rows
+    async with async_session_maker() as sql_session:
+        slides = (
+            await sql_session.scalars(
+                select(SlideModel)
+                .where(SlideModel.presentation == presentation_id)
+                .order_by(SlideModel.index)
+            )
+        ).all()
+
+        updated = False
+        for slide_model in slides:
+            if slide_model.index < len(s3_keys) and s3_keys[slide_model.index]:
+                slide_model.preview_s3_key = s3_keys[slide_model.index]
+                sql_session.add(slide_model)
+                updated = True
+
+        if updated:
+            await sql_session.commit()
 
 
 async def export_presentation(
@@ -72,8 +87,8 @@ async def export_presentation(
         # Create PPTX file using the converted model
         pptx_model = PptxPresentationModel(**pptx_model_data)
 
-        # Encode first slide screenshot as base64 and save as presentation thumbnail
-        await _save_presentation_thumbnail(pptx_model, presentation_id)
+        # Upload slide screenshots to S3 and store keys on SlideModel
+        await _save_slide_previews(pptx_model, presentation_id)
 
         temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
         pptx_creator = PptxPresentationCreator(pptx_model, temp_dir)

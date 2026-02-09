@@ -5,7 +5,6 @@ import math
 import os
 import random
 import traceback
-import base64
 from typing import Annotated, List, Literal, Optional, Tuple
 import dirtyjson
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Path
@@ -66,6 +65,7 @@ from utils.process_slides import (
     process_slide_add_placeholder_assets,
     process_slide_and_fetch_assets,
 )
+from utils.s3_utils import download_file_from_s3
 import uuid
 
 
@@ -123,16 +123,42 @@ async def get_presentation_thumbnail(
     id: uuid.UUID,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
-    """Return the first-slide thumbnail image for a presentation."""
+    """Return the first-slide thumbnail image for a presentation by downloading
+    it from S3 using the first slide's preview_s3_key."""
     presentation = await sql_session.get(PresentationModel, id)
 
     if not presentation:
         raise HTTPException(status_code=404, detail="Presentation not found")
 
-    if not presentation.thumbnail_base64:
+    # Find the first slide (index=0) for this presentation
+    first_slide = (
+        await sql_session.scalars(
+            select(SlideModel)
+            .where(SlideModel.presentation == id)
+            .order_by(SlideModel.index)
+            .limit(1)
+        )
+    ).first()
+
+    if not first_slide or not first_slide.preview_s3_key:
         raise HTTPException(status_code=404, detail="Thumbnail not available for this presentation")
 
-    image_bytes = base64.b64decode(presentation.thumbnail_base64)
+    # Download image from S3 into a temp file
+    temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
+    temp_path = os.path.join(temp_dir, f"thumbnail_{id}.png")
+    downloaded = await download_file_from_s3(first_slide.preview_s3_key, temp_path)
+
+    if not downloaded or not os.path.exists(temp_path):
+        raise HTTPException(status_code=404, detail="Thumbnail image could not be retrieved from storage")
+
+    try:
+        with open(temp_path, "rb") as f:
+            image_bytes = f.read()
+    finally:
+        try:
+            os.remove(temp_path)
+        except OSError:
+            pass
 
     return Response(
         content=image_bytes,

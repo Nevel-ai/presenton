@@ -257,7 +257,7 @@ async function takeSlideScreenshots(
 ): Promise<string[]> {
   const screenshotPaths: string[] = [];
   for (let i = 0; i < slides.length; i++) {
-    const screenshotPath = path.join(screenshotsDir, `slide_thumbnail_${i}.png`) as `${string}.png`;
+    const screenshotPath = path.join(screenshotsDir, `slide_${i}.png`) as `${string}.png`;
     await slides[i].screenshot({ path: screenshotPath });
     screenshotPaths.push(screenshotPath);
   }
