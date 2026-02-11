@@ -22,7 +22,6 @@ def get_messages(
                 # Notes
                 - Do not select different slide layout than current unless absolutely necessary as per user prompt. 
                 - If user prompt is not clear, select the layout that is most relevant to the slide data.
-                - If user prompt is not clear, select the layout that is most relevant to the slide data.
                 **Go through all notes and steps and make sure they are followed, including mentioned constraints**
             """,
         ),

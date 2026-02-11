@@ -6,14 +6,14 @@ from models.presentation_structure_model import PresentationStructureModel
 
 
 class SlideLayoutModel(BaseModel):
-    id: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    json_schema: dict
+    id: str # slide in format "templateName:layoutId"
+    name: Optional[str] = None # plain layout name, like "Basic Info"
+    description: Optional[str] = None # layout description
+    json_schema: dict # json schema of the slide data props (zod -> json schema)
 
 
 class PresentationLayoutModel(BaseModel):
-    name: str
+    name: str # template name
     ordered: bool = Field(default=False)
     slides: List[SlideLayoutModel]
 
