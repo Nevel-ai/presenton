@@ -7,7 +7,7 @@ import random
 import traceback
 from typing import Annotated, List, Literal, Optional, Tuple
 import dirtyjson
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Path
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Path, Query
 from fastapi.responses import Response, StreamingResponse, FileResponse
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -164,6 +164,41 @@ async def get_presentation_thumbnail(
         content=image_bytes,
         media_type="image/png",
         headers={"Content-Disposition": f'inline; filename="thumbnail_{id}.png"'},
+    )
+
+
+@PRESENTATION_ROUTER.get(
+    "/slide-screenshot",
+    responses={200: {"content": {"image/png": {}}, "description": "Slide screenshot image"}},
+)
+async def get_slide_screenshot(
+    preview_s3_key: Annotated[str, Query(description="S3 object key of the slide screenshot")],
+):
+    """Return a slide screenshot image by downloading it from S3 using its preview_s3_key."""
+    if not preview_s3_key:
+        raise HTTPException(status_code=400, detail="preview_s3_key is required")
+
+    temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
+    filename = os.path.basename(preview_s3_key) or f"screenshot_{uuid.uuid4()}.png"
+    temp_path = os.path.join(temp_dir, filename)
+    downloaded = await download_file_from_s3(preview_s3_key, temp_path)
+
+    if not downloaded or not os.path.exists(temp_path):
+        raise HTTPException(status_code=404, detail="Slide screenshot could not be retrieved from storage")
+
+    try:
+        with open(temp_path, "rb") as f:
+            image_bytes = f.read()
+    finally:
+        try:
+            os.remove(temp_path)
+        except OSError:
+            pass
+
+    return Response(
+        content=image_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )
 
 
