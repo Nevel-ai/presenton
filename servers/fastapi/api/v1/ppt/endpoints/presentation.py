@@ -97,21 +97,38 @@ async def get_all_presentations(sql_session: AsyncSession = Depends(get_async_se
     return presentations_with_slides
 
 
-@PRESENTATION_ROUTER.get("/{id}", response_model=PresentationWithSlides)
-async def get_presentation(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+@PRESENTATION_ROUTER.get(
+    "/slide-screenshot",
+    responses={200: {"content": {"image/png": {}}, "description": "Slide screenshot image"}},
+)
+async def get_slide_screenshot(
+    preview_s3_key: Annotated[str, Query(description="S3 object key of the slide screenshot")],
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-    if not presentation:
-        raise HTTPException(404, "Presentation not found")
-    slides = await sql_session.scalars(
-        select(SlideModel)
-        .where(SlideModel.presentation == id)
-        .order_by(SlideModel.index)
-    )
-    return PresentationWithSlides(
-        **presentation.model_dump(),
-        slides=slides,
+    """Return a slide screenshot image by downloading it from S3 using its preview_s3_key."""
+    if not preview_s3_key:
+        raise HTTPException(status_code=400, detail="preview_s3_key is required")
+
+    temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
+    filename = os.path.basename(preview_s3_key) or f"screenshot_{uuid.uuid4()}.png"
+    temp_path = os.path.join(temp_dir, filename)
+    downloaded = await download_file_from_s3(preview_s3_key, temp_path)
+
+    if not downloaded or not os.path.exists(temp_path):
+        raise HTTPException(status_code=404, detail="Slide screenshot could not be retrieved from storage")
+
+    try:
+        with open(temp_path, "rb") as f:
+            image_bytes = f.read()
+    finally:
+        try:
+            os.remove(temp_path)
+        except OSError:
+            pass
+
+    return Response(
+        content=image_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )
 
 
@@ -167,38 +184,21 @@ async def get_presentation_thumbnail(
     )
 
 
-@PRESENTATION_ROUTER.get(
-    "/slide-screenshot",
-    responses={200: {"content": {"image/png": {}}, "description": "Slide screenshot image"}},
-)
-async def get_slide_screenshot(
-    preview_s3_key: Annotated[str, Query(description="S3 object key of the slide screenshot")],
+@PRESENTATION_ROUTER.get("/{id}", response_model=PresentationWithSlides)
+async def get_presentation(
+    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
 ):
-    """Return a slide screenshot image by downloading it from S3 using its preview_s3_key."""
-    if not preview_s3_key:
-        raise HTTPException(status_code=400, detail="preview_s3_key is required")
-
-    temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
-    filename = os.path.basename(preview_s3_key) or f"screenshot_{uuid.uuid4()}.png"
-    temp_path = os.path.join(temp_dir, filename)
-    downloaded = await download_file_from_s3(preview_s3_key, temp_path)
-
-    if not downloaded or not os.path.exists(temp_path):
-        raise HTTPException(status_code=404, detail="Slide screenshot could not be retrieved from storage")
-
-    try:
-        with open(temp_path, "rb") as f:
-            image_bytes = f.read()
-    finally:
-        try:
-            os.remove(temp_path)
-        except OSError:
-            pass
-
-    return Response(
-        content=image_bytes,
-        media_type="image/png",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    presentation = await sql_session.get(PresentationModel, id)
+    if not presentation:
+        raise HTTPException(404, "Presentation not found")
+    slides = await sql_session.scalars(
+        select(SlideModel)
+        .where(SlideModel.presentation == id)
+        .order_by(SlideModel.index)
+    )
+    return PresentationWithSlides(
+        **presentation.model_dump(),
+        slides=slides,
     )
 
 
