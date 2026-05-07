@@ -72,9 +72,11 @@ class LLMClient:
 
     # ? Use tool calls
     def use_tool_calls_for_structured_output(self) -> bool:
-        if self.llm_provider != LLMProvider.CUSTOM:
+        # Gateways that do not support response_format json_schema (e.g. Nevel) need the
+        # ResponseSchema tool path; same flag as CUSTOM — set TOOL_CALLS=true.
+        if not (parse_bool_or_none(get_tool_calls_env()) or False):
             return False
-        return parse_bool_or_none(get_tool_calls_env()) or False
+        return self.llm_provider in (LLMProvider.CUSTOM, LLMProvider.OPENAI)
 
     # ? Web Grounding
     def enable_web_grounding(self) -> bool:
