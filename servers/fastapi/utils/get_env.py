@@ -45,6 +45,10 @@ def get_openai_api_key_env():
     return os.getenv("OPENAI_API_KEY")
 
 
+def get_openai_base_url_env():
+    return os.getenv("OPENAI_BASE_URL")
+
+
 def get_openai_model_env():
     return os.getenv("OPENAI_MODEL")
 

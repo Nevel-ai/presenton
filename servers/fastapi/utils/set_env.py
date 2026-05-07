@@ -25,6 +25,10 @@ def set_openai_api_key_env(value):
     os.environ["OPENAI_API_KEY"] = value
 
 
+def set_openai_base_url_env(value):
+    os.environ["OPENAI_BASE_URL"] = value
+
+
 def set_openai_model_env(value):
     os.environ["OPENAI_MODEL"] = value
 

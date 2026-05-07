@@ -1,5 +1,4 @@
-# OPENAI_URL = "https://api.openai.com/v1"
-OPENAI_URL = "https://openrouter.ai/api/v1"
+OPENAI_URL = "https://api.nevel.ai/v1"
 
 # Default models
 DEFAULT_OPENAI_MODEL = "openai/gpt-4.1"

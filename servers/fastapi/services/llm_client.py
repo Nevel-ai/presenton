@@ -42,6 +42,7 @@ from models.llm_tools import LLMDynamicTool, LLMTool
 from services.llm_tool_calls_handler import LLMToolCallsHandler
 from utils.async_iterator import iterator_to_async
 from utils.dummy_functions import do_nothing_async
+from constants.llm import OPENAI_URL
 from utils.get_env import (
     get_anthropic_api_key_env,
     get_custom_llm_api_key_env,
@@ -50,6 +51,7 @@ from utils.get_env import (
     get_google_api_key_env,
     get_ollama_url_env,
     get_openai_api_key_env,
+    get_openai_base_url_env,
     get_tool_calls_env,
     get_web_grounding_env,
 )
@@ -113,7 +115,7 @@ class LLMClient:
                 detail="OpenAI API Key is not set",
             )
         return AsyncOpenAI(
-            base_url="https://openrouter.ai/api/v1",
+            base_url=get_openai_base_url_env() or OPENAI_URL,
             api_key=get_openai_api_key_env(),
         )
 
