@@ -1,3 +1,4 @@
+import json
 import pytest
 import asyncio
 import os
@@ -268,24 +269,42 @@ class TestImageGenerationService:
         async def run_test():
             with patch.dict(os.environ, {"IMAGE_PROVIDER": "pixabay", "PIXABAY_API_KEY": "test_pixabay_key"}):
                 service = ImageGenerationService(mock_images_directory)
-                
-                mock_response = AsyncMock()
-                mock_response.json = AsyncMock(return_value={
-                    "hits": [{
-                        "largeImageURL": "https://example.com/pixabay_image.jpg"
-                    }]
-                })
-                
+
+                class FakeResponse:
+                    status = 200
+                    headers = {"Content-Type": "application/json"}
+
+                    async def text(self):
+                        return json.dumps(
+                            {
+                                "hits": [
+                                    {
+                                        "largeImageURL": "https://example.com/pixabay_image.jpg"
+                                    }
+                                ]
+                            }
+                        )
+
+                class FakeRequestCM:
+                    async def __aenter__(self):
+                        return FakeResponse()
+
+                    async def __aexit__(self, *args):
+                        return None
+
                 mock_session = AsyncMock()
-                mock_session.get = AsyncMock(return_value=mock_response)
+                mock_session.get = Mock(return_value=FakeRequestCM())
                 mock_session.__aenter__ = AsyncMock(return_value=mock_session)
                 mock_session.__aexit__ = AsyncMock(return_value=None)
-                
-                with patch('aiohttp.ClientSession', return_value=mock_session):
+
+                with patch("aiohttp.ClientSession", return_value=mock_session):
                     result = await service.get_image_from_pixabay("sunset")
-                    
+
                     assert result == "https://example.com/pixabay_image.jpg"
                     mock_session.get.assert_called_once()
+                    call_kw = mock_session.get.call_args
+                    assert call_kw[0][0] == "https://pixabay.com/api/"
+                    assert call_kw[1]["params"]["q"] == "sunset"
         
         asyncio.run(run_test())
 
