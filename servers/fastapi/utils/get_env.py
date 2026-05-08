@@ -45,8 +45,9 @@ def get_openai_api_key_env():
     return os.getenv("OPENAI_API_KEY")
 
 
-def get_openai_base_url_env():
-    return os.getenv("OPENAI_BASE_URL")
+def get_openai_proxy_url_env():
+    # Full proxy URL, can include auth, e.g. http://user:pass@host:3128
+    return os.getenv("OPENAI_PROXY_URL")
 
 
 def get_openai_model_env():

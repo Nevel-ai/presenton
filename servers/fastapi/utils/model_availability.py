@@ -2,6 +2,7 @@ from constants.supported_ollama_models import SUPPORTED_OLLAMA_MODELS
 from constants.llm import OPENAI_URL
 from enums.image_provider import ImageProvider
 from enums.llm_provider import LLMProvider
+import openai
 from utils.available_models import (
     list_available_anthropic_models,
     list_available_google_models,
@@ -14,6 +15,7 @@ from utils.get_env import (
     get_google_model_env,
     get_openai_api_key_env,
     get_openai_model_env,
+    get_openai_proxy_url_env,
     get_pixabay_api_key_env,
     get_pexels_api_key_env,
     get_ideogram_api_key_env,
@@ -41,13 +43,28 @@ async def check_llm_and_image_provider_api_or_model_availability():
                 raise Exception("OPENAI_API_KEY must be provided")
             openai_model = get_openai_model_env()
             if openai_model:
-                available_models = await list_available_openai_compatible_models(
-                    OPENAI_URL, openai_api_key
-                )
-                if openai_model not in available_models:
+                try:
+                    available_models = await list_available_openai_compatible_models(
+                        OPENAI_URL,
+                        openai_api_key,
+                        get_openai_proxy_url_env(),
+                    )
+                    if openai_model not in available_models:
+                        print("-" * 50)
+                        print("Available models: ", available_models)
+                        raise Exception(f"Model {openai_model} is not available")
+                except openai.AuthenticationError as e:
+                    # Don't prevent app from starting if the configured gateway
+                    # rejects the key at startup; runtime requests will surface it.
                     print("-" * 50)
-                    print("Available models: ", available_models)
-                    raise Exception(f"Model {openai_model} is not available")
+                    print(
+                        "Warning: could not validate OPENAI_MODEL at startup due to authentication error."
+                    )
+                    print(
+                        "If you're using an OpenAI-compatible gateway (e.g. Nevel), make sure OPENAI_API_KEY matches that gateway."
+                    )
+                    print(f"Auth error: {e}")
+                    print("-" * 50)
 
         elif get_llm_provider() == LLMProvider.GOOGLE:
             google_api_key = get_google_api_key_env()
@@ -97,13 +114,23 @@ async def check_llm_and_image_provider_api_or_model_availability():
                 raise Exception("CUSTOM_MODEL must be provided")
             if not custom_llm_url:
                 raise Exception("CUSTOM_LLM_URL must be provided")
-            available_models = await list_available_openai_compatible_models(
-                custom_llm_url, get_custom_llm_api_key_env() or "null"
-            )
-            print("-" * 50)
-            print("Available models: ", available_models)
-            if custom_model not in available_models:
-                raise Exception(f"Model {custom_model} is not available")
+            try:
+                available_models = await list_available_openai_compatible_models(
+                    custom_llm_url,
+                    get_custom_llm_api_key_env() or "null",
+                    get_openai_proxy_url_env(),
+                )
+                print("-" * 50)
+                print("Available models: ", available_models)
+                if custom_model not in available_models:
+                    raise Exception(f"Model {custom_model} is not available")
+            except openai.AuthenticationError as e:
+                print("-" * 50)
+                print(
+                    "Warning: could not validate CUSTOM_MODEL at startup due to authentication error."
+                )
+                print(f"Auth error: {e}")
+                print("-" * 50)
 
         # Check for Image Provider and API keys
         selected_image_provider = get_selected_image_provider()

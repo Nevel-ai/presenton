@@ -3,6 +3,7 @@ import dirtyjson
 import json
 from typing import AsyncGenerator, List, Optional
 from fastapi import HTTPException
+import httpx
 from openai import AsyncOpenAI
 from openai.types.chat.chat_completion_chunk import (
     ChatCompletionChunk as OpenAIChatCompletionChunk,
@@ -51,7 +52,7 @@ from utils.get_env import (
     get_google_api_key_env,
     get_ollama_url_env,
     get_openai_api_key_env,
-    get_openai_base_url_env,
+    get_openai_proxy_url_env,
     get_tool_calls_env,
     get_web_grounding_env,
 )
@@ -67,8 +68,23 @@ from utils.schema_utils import (
 class LLMClient:
     def __init__(self):
         self.llm_provider = get_llm_provider()
+        self._openai_http_client: httpx.AsyncClient | None = None
         self._client = self._get_client()
         self.tool_calls_handler = LLMToolCallsHandler(self)
+
+    def _get_openai_http_client(self) -> httpx.AsyncClient:
+        if self._openai_http_client is None:
+            proxy_url = get_openai_proxy_url_env()
+            self._openai_http_client = httpx.AsyncClient(
+                proxy=proxy_url,
+                transport=httpx.AsyncHTTPTransport(local_address="0.0.0.0"),
+            )
+        return self._openai_http_client
+
+    async def aclose(self) -> None:
+        if self._openai_http_client is not None:
+            await self._openai_http_client.aclose()
+            self._openai_http_client = None
 
     # ? Use tool calls
     def use_tool_calls_for_structured_output(self) -> bool:
@@ -117,8 +133,9 @@ class LLMClient:
                 detail="OpenAI API Key is not set",
             )
         return AsyncOpenAI(
-            base_url=get_openai_base_url_env() or OPENAI_URL,
+            base_url=OPENAI_URL,
             api_key=get_openai_api_key_env(),
+            http_client=self._get_openai_http_client(),
         )
 
     def _get_google_client(self):
@@ -141,6 +158,7 @@ class LLMClient:
         return AsyncOpenAI(
             base_url=(get_ollama_url_env() or "http://localhost:11434") + "/v1",
             api_key="ollama",
+            http_client=self._get_openai_http_client(),
         )
 
     def _get_custom_client(self):
@@ -152,6 +170,7 @@ class LLMClient:
         return AsyncOpenAI(
             base_url=get_custom_llm_url_env(),
             api_key=get_custom_llm_api_key_env() or "null",
+            http_client=self._get_openai_http_client(),
         )
 
     # ? Prompts
