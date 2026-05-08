@@ -1,6 +1,7 @@
 import os
+import shutil
 import aiohttp
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Set
 import uuid
 from fastapi import HTTPException
 from pathvalidate import sanitize_filename
@@ -20,31 +21,27 @@ async def _save_slide_previews(
     pptx_model: PptxPresentationModel, presentation_id: uuid.UUID
 ) -> None:
     """
-    Upload each slide's screenshot to S3, store the S3 object key on the
-    corresponding SlideModel (preview_s3_key), and clean up temp files.
+    Upload each slide's screenshot to S3 and store the S3 object key on the
+    corresponding SlideModel (preview_s3_key).
+
+    Note: this function does NOT delete the local screenshot files. Element
+    screenshots referenced by the same per-request directory are still needed
+    by PptxPresentationCreator. The whole per-request directory is removed by
+    the caller (export_presentation) once PPTX assembly finishes.
     """
-    # Collect S3 keys per slide index
     s3_keys: List[Optional[str]] = []
 
-    for idx, slide in enumerate(pptx_model.slides):
+    for slide in pptx_model.slides:
         if not slide.screenshot_src or not os.path.exists(slide.screenshot_src):
             s3_keys.append(None)
             continue
 
-        # Upload screenshot to S3
         s3_key = await upload_file_to_s3(
             slide.screenshot_src,
             postfix=f"preview/{presentation_id}",
         )
         s3_keys.append(s3_key)
 
-        # Clean up temp screenshot file
-        try:
-            os.remove(slide.screenshot_src)
-        except OSError:
-            pass
-
-    # Persist S3 keys on the corresponding SlideModel rows
     async with async_session_maker() as sql_session:
         slides = (
             await sql_session.scalars(
@@ -63,6 +60,20 @@ async def _save_slide_previews(
 
         if updated:
             await sql_session.commit()
+
+
+def _collect_screenshot_dirs(pptx_model: PptxPresentationModel) -> Set[str]:
+    """
+    Return the set of parent directories that hold per-request screenshot
+    files produced by the Next.js converter. With the per-request subdir
+    layout, all of a single export's screenshots share one directory, but we
+    return a set defensively in case of future changes.
+    """
+    dirs: Set[str] = set()
+    for slide in pptx_model.slides:
+        if slide.screenshot_src:
+            dirs.add(os.path.dirname(slide.screenshot_src))
+    return dirs
 
 
 async def export_presentation(
@@ -87,24 +98,32 @@ async def export_presentation(
         # Create PPTX file using the converted model
         pptx_model = PptxPresentationModel(**pptx_model_data)
 
-        # Upload slide screenshots to S3 and store keys on SlideModel
-        await _save_slide_previews(pptx_model, presentation_id)
+        # Per-request screenshot directories created by the Next.js side.
+        # Tracked here so we can guarantee removal in finally even on failure.
+        screenshot_dirs = _collect_screenshot_dirs(pptx_model)
 
-        temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
-        pptx_creator = PptxPresentationCreator(pptx_model, temp_dir)
-        await pptx_creator.create_ppt()
+        try:
+            # Upload slide screenshots to S3 and store keys on SlideModel
+            await _save_slide_previews(pptx_model, presentation_id)
 
-        export_directory = get_exports_directory()
-        pptx_path = os.path.join(
-            export_directory,
-            f"{sanitize_filename(title or str(uuid.uuid4()))}.pptx",
-        )
-        pptx_creator.save(pptx_path)
+            temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
+            pptx_creator = PptxPresentationCreator(pptx_model, temp_dir)
+            await pptx_creator.create_ppt()
 
-        return PresentationAndPath(
-            presentation_id=presentation_id,
-            path=pptx_path,
-        )
+            export_directory = get_exports_directory()
+            pptx_path = os.path.join(
+                export_directory,
+                f"{sanitize_filename(title or str(uuid.uuid4()))}.pptx",
+            )
+            pptx_creator.save(pptx_path)
+
+            return PresentationAndPath(
+                presentation_id=presentation_id,
+                path=pptx_path,
+            )
+        finally:
+            for screenshot_dir in screenshot_dirs:
+                shutil.rmtree(screenshot_dir, ignore_errors=True)
     else:
         async with aiohttp.ClientSession() as session:
             async with session.post(

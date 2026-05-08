@@ -33,11 +33,17 @@ interface GetAllChildElementsAttributesArgs {
 export async function GET(request: NextRequest) {
   let browser: Browser | null = null;
   let page: Page | null = null;
+  let screenshotsDir: string | null = null;
+  let success = false;
 
   try {
     const id = await getPresentationId(request);
+    // Per-request UUID so concurrent exports cannot collide on local file paths.
+    // The FastAPI side is responsible for removing this directory after upload.
+    const requestId = uuidv4();
+    screenshotsDir = getScreenshotsDir(requestId);
+
     [browser, page] = await getBrowserAndPage(id);
-    const screenshotsDir = getScreenshotsDir();
 
     const { slides, speakerNotes } = await getSlidesAndSpeakerNotes(page);
 
@@ -64,6 +70,7 @@ export async function GET(request: NextRequest) {
 
     await closeBrowserAndPage(browser, page);
 
+    success = true;
     return NextResponse.json(presentation_pptx_model);
   } catch (error: any) {
     console.error(error);
@@ -75,6 +82,19 @@ export async function GET(request: NextRequest) {
       { detail: `Internal server error: ${error.message}` },
       { status: 500 }
     );
+  } finally {
+    // Only clean up here on failure. On success the FastAPI side still needs
+    // these files for upload / PPTX assembly and will remove the directory.
+    if (!success && screenshotsDir) {
+      try {
+        fs.rmSync(screenshotsDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        console.error(
+          "Failed to clean up screenshots dir on error:",
+          cleanupError
+        );
+      }
+    }
   }
 }
 
@@ -127,7 +147,7 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-function getScreenshotsDir() {
+function getScreenshotsDir(requestId: string) {
   const tempDir = process.env.TEMP_DIRECTORY;
   if (!tempDir) {
     console.warn(
@@ -135,7 +155,9 @@ function getScreenshotsDir() {
     );
     throw new ApiError("TEMP_DIRECTORY environment variable not set");
   }
-  const screenshotsDir = path.join(tempDir, "screenshots");
+  // Per-request subdirectory ensures concurrent exports cannot overwrite
+  // each other's slide thumbnails or element screenshots.
+  const screenshotsDir = path.join(tempDir, "screenshots", requestId);
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir, { recursive: true });
   }
