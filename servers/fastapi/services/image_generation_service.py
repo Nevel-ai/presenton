@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import aiohttp
 from google import genai
@@ -190,10 +191,44 @@ class ImageGenerationService:
             return image_url
 
     async def get_image_from_pixabay(self, prompt: str) -> str:
+        api_key = get_pixabay_api_key_env()
+        if not api_key:
+            raise Exception("PIXABAY_API_KEY must be provided")
+
+        url = "https://pixabay.com/api/"
+        params = {
+            "key": api_key,
+            "q": prompt,
+            "image_type": "photo",
+            "per_page": "3",
+        }
         async with aiohttp.ClientSession(trust_env=True) as session:
-            response = await session.get(
-                f"https://pixabay.com/api/?key={get_pixabay_api_key_env()}&q={prompt}&image_type=photo&per_page=3"
-            )
-            data = await response.json()
-            image_url = data["hits"][0]["largeImageURL"]
-            return image_url
+            async with session.get(url, params=params) as response:
+                text = await response.text()
+                ctype = response.headers.get("Content-Type", "")
+
+                if response.status >= 400:
+                    raise Exception(
+                        f"Pixabay HTTP {response.status} ({ctype}): {text[:500]}"
+                    )
+
+                try:
+                    data = json.loads(text)
+                except json.JSONDecodeError:
+                    raise Exception(
+                        "Pixabay returned non-JSON (invalid key, rate limit, IP block, "
+                        f"or HTML error page). Content-Type: {ctype}. Preview: {text[:400]}"
+                    )
+
+                hits = data.get("hits") or []
+                if not hits:
+                    raise Exception(
+                        "Pixabay returned no images for this query. "
+                        f"total={data.get('total', 'n/a')}"
+                    )
+
+                image_url = hits[0].get("largeImageURL")
+                if not image_url:
+                    raise Exception("Pixabay hit missing largeImageURL")
+
+                return image_url

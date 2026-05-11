@@ -7,6 +7,7 @@ class UserConfig(BaseModel):
 
     # OpenAI
     OPENAI_API_KEY: Optional[str] = None
+    OPENAI_PROXY_URL: Optional[str] = None
     OPENAI_MODEL: Optional[str] = None
 
     # Google
