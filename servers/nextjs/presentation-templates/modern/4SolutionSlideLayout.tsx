@@ -1,6 +1,6 @@
 import React from "react";
 import * as z from "zod";
-import { IconSchema } from "@/presentation-templates/defaultSchemes";
+import { IconSchema, getIconQuery, getIconUrl } from "@/presentation-templates/defaultSchemes";
 
 export const layoutId = "solution-slide";
 export const layoutName = "Solution Slide";
@@ -140,13 +140,11 @@ const SolutionSlideLayout: React.FC<SolutionSlideLayoutProps> = ({
                 className="flex flex-col items-center text-center bg-[#F5F8FE] rounded-lg shadow px-3 py-4 "
               >
                 <div className="mb-2">
-                  {section?.icon?.__icon_url__ && (
-                    <img
-                      src={section.icon.__icon_url__}
-                      alt={section.icon.__icon_query__}
-                      className="w-12 h-12 mb-2"
-                    />
-                  )}
+                  <img
+                    src={getIconUrl(section?.icon)}
+                    alt={getIconQuery(section?.icon)}
+                    className="w-12 h-12 mb-2"
+                  />
                 </div>
                 <h2 className="text-lg font-semibold text-blue-600 mb-1">
                   {section.title}

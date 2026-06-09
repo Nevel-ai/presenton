@@ -1,16 +1,28 @@
 import asyncio
-from typing import List, Tuple
+from typing import List, TYPE_CHECKING
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from models.sql.slide import SlideModel
 from services.icon_finder_service import ICON_FINDER_SERVICE
-from services.image_generation_service import ImageGenerationService
-from utils.asset_directory_utils import get_images_directory
 from utils.dict_utils import get_dict_at_path, get_dict_paths_with_key, set_dict_at_path
+
+if TYPE_CHECKING:
+    from services.image_generation_service import ImageGenerationService
+
+PLACEHOLDER_IMAGE_URL = "/static/images/placeholder.jpg"
+PLACEHOLDER_ICON_URL = "/static/icons/placeholder.svg"
+
+
+def _get_icon_url_or_placeholder(icon_result) -> str:
+    if isinstance(icon_result, (list, tuple)) and icon_result:
+        icon_url = icon_result[0]
+        if isinstance(icon_url, str) and icon_url:
+            return icon_url
+    return PLACEHOLDER_ICON_URL
 
 
 async def process_slide_and_fetch_assets(
-    image_generation_service: ImageGenerationService,
+    image_generation_service: "ImageGenerationService",
     slide: SlideModel,
 ) -> List[ImageAsset]:
 
@@ -53,14 +65,14 @@ async def process_slide_and_fetch_assets(
 
     for icon_path in icon_paths:
         icon_dict = get_dict_at_path(slide.content, icon_path)
-        icon_dict["__icon_url__"] = results.pop()[0]
+        icon_dict["__icon_url__"] = _get_icon_url_or_placeholder(results.pop())
         set_dict_at_path(slide.content, icon_path, icon_dict)
 
     return return_assets
 
 
 async def process_old_and_new_slides_and_fetch_assets(
-    image_generation_service: ImageGenerationService,
+    image_generation_service: "ImageGenerationService",
     slide: SlideModel,
     new_slide_content: dict,
 ) -> List[ImageAsset]:
@@ -118,7 +130,7 @@ async def process_old_and_new_slides_and_fetch_assets(
         if new_image["__image_prompt__"] in old_image_prompts:
             old_image_url = old_image_dicts[
                 old_image_prompts.index(new_image["__image_prompt__"])
-            ]["__image_url__"]
+            ].get("__image_url__", PLACEHOLDER_IMAGE_URL)
             new_image["__image_url__"] = old_image_url
             new_images_fetch_status.append(False)
             continue
@@ -140,7 +152,7 @@ async def process_old_and_new_slides_and_fetch_assets(
         if new_icon["__icon_query__"] in old_icon_queries:
             old_icon_url = old_icon_dicts[
                 old_icon_queries.index(new_icon["__icon_query__"])
-            ]["__icon_url__"]
+            ].get("__icon_url__", PLACEHOLDER_ICON_URL)
             new_icon["__icon_url__"] = old_icon_url
             new_icons_fetch_status.append(False)
             continue
@@ -157,20 +169,26 @@ async def process_old_and_new_slides_and_fetch_assets(
     new_assets = []
 
     # Sets new image and icon urls for assets that were fetched
-    for i, new_image in enumerate(new_images):
+    fetched_image_index = 0
+    for i, new_image_dict in enumerate(new_image_dicts):
         if new_images_fetch_status[i]:
-            fetched_image = new_images[i]
+            fetched_image = new_images[fetched_image_index]
+            fetched_image_index += 1
             if isinstance(fetched_image, ImageAsset):
                 new_assets.append(fetched_image)
                 # Use the local path for rendering; s3_url may not be publicly accessible.
                 image_url = fetched_image.path
             else:
                 image_url = fetched_image
-            new_image_dicts[i]["__image_url__"] = image_url
+            new_image_dict["__image_url__"] = image_url
 
-    for i, new_icon in enumerate(new_icons):
+    fetched_icon_index = 0
+    for i, new_icon_dict in enumerate(new_icon_dicts):
         if new_icons_fetch_status[i]:
-            new_icon_dicts[i]["__icon_url__"] = new_icons[i][0]
+            new_icon_dict["__icon_url__"] = _get_icon_url_or_placeholder(
+                new_icons[fetched_icon_index]
+            )
+            fetched_icon_index += 1
 
     for i, new_image_dict in enumerate(new_image_dicts):
         set_dict_at_path(new_slide_content, new_image_dict_paths[i], new_image_dict)
@@ -188,10 +206,10 @@ def process_slide_add_placeholder_assets(slide: SlideModel):
 
     for image_path in image_paths:
         image_dict = get_dict_at_path(slide.content, image_path)
-        image_dict["__image_url__"] = "/static/images/placeholder.jpg"
+        image_dict["__image_url__"] = PLACEHOLDER_IMAGE_URL
         set_dict_at_path(slide.content, image_path, image_dict)
 
     for icon_path in icon_paths:
         icon_dict = get_dict_at_path(slide.content, icon_path)
-        icon_dict["__icon_url__"] = "/static/icons/placeholder.svg"
+        icon_dict["__icon_url__"] = PLACEHOLDER_ICON_URL
         set_dict_at_path(slide.content, icon_path, icon_dict)
