@@ -1,5 +1,6 @@
 import asyncio
-from typing import List, TYPE_CHECKING
+import os
+from typing import List, Mapping, TYPE_CHECKING
 from urllib.parse import quote
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
@@ -14,14 +15,57 @@ PLACEHOLDER_IMAGE_URL = "/static/images/placeholder.jpg"
 PLACEHOLDER_ICON_URL = "/static/icons/placeholder.svg"
 
 
+def _get_s3_proxy_url(s3_key: str) -> str:
+    preview_s3_key = quote(s3_key, safe="")
+    return (
+        "/api/v1/ppt/presentation/slide-screenshot"
+        f"?preview_s3_key={preview_s3_key}"
+    )
+
+
 def _get_image_url_for_rendering(image_asset: ImageAsset) -> str:
     if image_asset.s3_url:
-        preview_s3_key = quote(image_asset.s3_url, safe="")
-        return (
-            "/api/v1/ppt/presentation/slide-screenshot"
-            f"?preview_s3_key={preview_s3_key}"
-        )
+        return _get_s3_proxy_url(image_asset.s3_url)
     return image_asset.path
+
+
+def normalize_local_image_urls(
+    content: dict,
+    image_s3_keys_by_path: Mapping[str, str],
+) -> bool:
+    """
+    Replace legacy local image URLs with S3 proxy URLs before rendering.
+
+    Older slides can persist /app_data/images/... paths in JSON content. Those
+    files are pod-local and may disappear after restart or render on a different
+    instance, producing blank slide screenshots. ImageAsset keeps the durable S3
+    key, so use it when available and fall back to a placeholder for missing
+    local files.
+    """
+    changed = False
+
+    def visit(value):
+        nonlocal changed
+
+        if isinstance(value, dict):
+            image_url = value.get("__image_url__")
+            if isinstance(image_url, str) and image_url.startswith("/app_data/images/"):
+                s3_key = image_s3_keys_by_path.get(image_url)
+                if s3_key:
+                    value["__image_url__"] = _get_s3_proxy_url(s3_key)
+                    changed = True
+                elif not os.path.exists(image_url):
+                    value["__image_url__"] = PLACEHOLDER_IMAGE_URL
+                    changed = True
+
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    visit(content)
+    return changed
 
 
 def _get_icon_url_or_placeholder(icon_result) -> str:

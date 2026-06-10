@@ -4,6 +4,8 @@ from types import SimpleNamespace
 from models.sql.image_asset import ImageAsset
 from utils.process_slides import (
     PLACEHOLDER_ICON_URL,
+    PLACEHOLDER_IMAGE_URL,
+    normalize_local_image_urls,
     process_old_and_new_slides_and_fetch_assets,
     process_slide_add_placeholder_assets,
     process_slide_and_fetch_assets,
@@ -190,3 +192,37 @@ def test_process_old_and_new_slides_uses_s3_proxy_url_for_new_uploaded_images():
         == "/api/v1/ppt/presentation/slide-screenshot?preview_s3_key="
         "api%2Fpresentation%2Fimages%2Fpresentation-id%2Fgenerated%20image.png"
     )
+
+
+def test_normalize_local_image_urls_rewrites_legacy_uploaded_paths():
+    content = {
+        "image": {
+            "__image_prompt__": "legacy generated image",
+            "__image_url__": "/app_data/images/generated image.png",
+        },
+        "nested": [
+            {
+                "image": {
+                    "__image_prompt__": "missing generated image",
+                    "__image_url__": "/app_data/images/missing.png",
+                }
+            }
+        ],
+    }
+
+    changed = normalize_local_image_urls(
+        content,
+        {
+            "/app_data/images/generated image.png": (
+                "api/presentation/images/presentation-id/generated image.png"
+            )
+        },
+    )
+
+    assert changed is True
+    assert (
+        content["image"]["__image_url__"]
+        == "/api/v1/ppt/presentation/slide-screenshot?preview_s3_key="
+        "api%2Fpresentation%2Fimages%2Fpresentation-id%2Fgenerated%20image.png"
+    )
+    assert content["nested"][0]["image"]["__image_url__"] == PLACEHOLDER_IMAGE_URL
