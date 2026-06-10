@@ -1,6 +1,7 @@
 import asyncio
 from types import SimpleNamespace
 
+from models.sql.image_asset import ImageAsset
 from utils.process_slides import (
     PLACEHOLDER_ICON_URL,
     process_old_and_new_slides_and_fetch_assets,
@@ -12,6 +13,15 @@ from utils.process_slides import (
 class StubImageGenerationService:
     async def generate_image(self, image_prompt):
         return "/generated/image.png"
+
+
+class UploadedImageGenerationService:
+    async def generate_image(self, image_prompt):
+        return ImageAsset(
+            path="/app_data/images/generated.png",
+            is_uploaded=True,
+            s3_url="api/presentation/images/presentation-id/generated image.png",
+        )
 
 
 def make_slide(content):
@@ -129,4 +139,54 @@ def test_process_old_and_new_slides_applies_fetched_icon_after_reused_icon(monke
     assert (
         new_content["bulletPoints"][1]["icon"]["__icon_url__"]
         == "/icons/food icon.svg"
+    )
+
+
+def test_process_slide_and_fetch_assets_uses_s3_proxy_url_for_uploaded_images():
+    slide = make_slide(
+        {
+            "image": {
+                "__image_prompt__": "generated image",
+                "__image_url__": "/static/images/placeholder.jpg",
+            }
+        }
+    )
+
+    asyncio.run(process_slide_and_fetch_assets(UploadedImageGenerationService(), slide))
+
+    assert (
+        slide.content["image"]["__image_url__"]
+        == "/api/v1/ppt/presentation/slide-screenshot?preview_s3_key="
+        "api%2Fpresentation%2Fimages%2Fpresentation-id%2Fgenerated%20image.png"
+    )
+
+
+def test_process_old_and_new_slides_uses_s3_proxy_url_for_new_uploaded_images():
+    old_slide = make_slide(
+        {
+            "image": {
+                "__image_prompt__": "old image",
+                "__image_url__": "/old/image.png",
+            }
+        }
+    )
+    new_content = {
+        "image": {
+            "__image_prompt__": "generated image",
+            "__image_url__": "/static/images/placeholder.jpg",
+        }
+    }
+
+    asyncio.run(
+        process_old_and_new_slides_and_fetch_assets(
+            UploadedImageGenerationService(),
+            old_slide,
+            new_content,
+        )
+    )
+
+    assert (
+        new_content["image"]["__image_url__"]
+        == "/api/v1/ppt/presentation/slide-screenshot?preview_s3_key="
+        "api%2Fpresentation%2Fimages%2Fpresentation-id%2Fgenerated%20image.png"
     )

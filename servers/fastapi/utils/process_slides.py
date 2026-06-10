@@ -1,5 +1,6 @@
 import asyncio
 from typing import List, TYPE_CHECKING
+from urllib.parse import quote
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from models.sql.slide import SlideModel
@@ -11,6 +12,16 @@ if TYPE_CHECKING:
 
 PLACEHOLDER_IMAGE_URL = "/static/images/placeholder.jpg"
 PLACEHOLDER_ICON_URL = "/static/icons/placeholder.svg"
+
+
+def _get_image_url_for_rendering(image_asset: ImageAsset) -> str:
+    if image_asset.s3_url:
+        preview_s3_key = quote(image_asset.s3_url, safe="")
+        return (
+            "/api/v1/ppt/presentation/slide-screenshot"
+            f"?preview_s3_key={preview_s3_key}"
+        )
+    return image_asset.path
 
 
 def _get_icon_url_or_placeholder(icon_result) -> str:
@@ -58,7 +69,7 @@ async def process_slide_and_fetch_assets(
         result = results.pop()
         if isinstance(result, ImageAsset):
             return_assets.append(result)
-            image_dict["__image_url__"] = result.path
+            image_dict["__image_url__"] = _get_image_url_for_rendering(result)
         else:
             image_dict["__image_url__"] = result
         set_dict_at_path(slide.content, image_path, image_dict)
@@ -176,8 +187,7 @@ async def process_old_and_new_slides_and_fetch_assets(
             fetched_image_index += 1
             if isinstance(fetched_image, ImageAsset):
                 new_assets.append(fetched_image)
-                # Use the local path for rendering; s3_url may not be publicly accessible.
-                image_url = fetched_image.path
+                image_url = _get_image_url_for_rendering(fetched_image)
             else:
                 image_url = fetched_image
             new_image_dict["__image_url__"] = image_url
