@@ -1,5 +1,6 @@
 import React from 'react'
 import * as z from "zod";
+import { getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 const ImageSchema = z.object({
 __image_url__: z.string().url().default("https://images.pexels.com/photos/31527637/pexels-photo-31527637.jpeg").meta({
@@ -118,8 +119,8 @@ return (
         <div className="relative h-full overflow-hidden" style={{ backgroundColor: 'var(--tertiary-accent-color, #E5E7EB)' }}>
             {slideData?.media?.type === "image" ? (
                 <img
-                    src={slideData?.media?.image?.__image_url__ || ""}
-                    alt={slideData?.media?.image?.__image_prompt__ || "left media"}
+                    src={getImageUrl(slideData?.media?.image)}
+                    alt={getImagePrompt(slideData?.media?.image)}
                     className="absolute inset-0 w-full h-full object-cover"
                 />
             ) : null }

@@ -2,7 +2,7 @@ import { RemoteSvgIcon } from '@/app/hooks/useRemoteSvgIcon';
 import React from 'react'
 // Charts removed
 import * as z from "zod";
-import { getIconQuery, getIconUrl } from '@/presentation-templates/defaultSchemes';
+import { getIconQuery, getIconUrl, getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 
 
@@ -138,8 +138,8 @@ const ImageSchema = z.object({
   
         <div className="relative flex-1 flex items-center justify-center">
           <img
-            src={slideData?.backgroundImage?.__image_url__ || ""}
-            alt={slideData?.backgroundImage?.__image_prompt__ || "background"}
+            src={getImageUrl(slideData?.backgroundImage)}
+            alt={getImagePrompt(slideData?.backgroundImage)}
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0" style={{ backgroundColor: 'rgba(255,255,255,0.6)' }}></div>

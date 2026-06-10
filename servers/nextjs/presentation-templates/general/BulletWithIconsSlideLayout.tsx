@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { ImageSchema, IconSchema, getIconQuery, getIconUrl } from '@/presentation-templates/defaultSchemes';
+import { ImageSchema, IconSchema, getIconQuery, getIconUrl, getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 import { RemoteSvgIcon } from '@/app/hooks/useRemoteSvgIcon';
 
 export const layoutId = 'bullet-with-icons-slide'
@@ -116,8 +116,8 @@ const BulletWithIconsSlideLayout: React.FC<BulletWithIconsSlideLayoutProps> = ({
                         <div className="relative z-10 h-full flex items-center justify-center p-4">
                             <div className="w-full max-w-md h-80 rounded-2xl overflow-hidden shadow-lg">
                                 <img
-                                    src={slideData?.image?.__image_url__ || ''}
-                                    alt={slideData?.image?.__image_prompt__ || slideData?.title || ''}
+                                    src={getImageUrl(slideData?.image)}
+                                    alt={getImagePrompt(slideData?.image) || slideData?.title || ''}
                                     className="w-full h-full object-cover"
                                 />
                             </div>

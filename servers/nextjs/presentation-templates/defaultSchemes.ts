@@ -2,6 +2,8 @@ import * as z from "zod";
 
 export const DEFAULT_ICON_URL = "/static/icons/placeholder.svg";
 export const DEFAULT_ICON_QUERY = "placeholder icon";
+export const DEFAULT_IMAGE_URL = "/static/images/placeholder.jpg";
+export const DEFAULT_IMAGE_PROMPT = "placeholder image";
 
 export const ImageSchema = z.object({
     __image_url__: z.url().meta({
@@ -26,6 +28,11 @@ type IconLike = {
     __icon_query__?: unknown;
 } | null | undefined;
 
+type ImageLike = {
+    __image_url__?: unknown;
+    __image_prompt__?: unknown;
+} | null | undefined;
+
 export function getIconUrl(icon: IconLike): string {
     return typeof icon?.__icon_url__ === "string" && icon.__icon_url__.trim()
         ? icon.__icon_url__
@@ -36,4 +43,16 @@ export function getIconQuery(icon: IconLike): string {
     return typeof icon?.__icon_query__ === "string" && icon.__icon_query__.trim()
         ? icon.__icon_query__
         : DEFAULT_ICON_QUERY;
+}
+
+export function getImageUrl(image: ImageLike): string {
+    return typeof image?.__image_url__ === "string" && image.__image_url__.trim()
+        ? image.__image_url__
+        : DEFAULT_IMAGE_URL;
+}
+
+export function getImagePrompt(image: ImageLike): string {
+    return typeof image?.__image_prompt__ === "string" && image.__image_prompt__.trim()
+        ? image.__image_prompt__
+        : DEFAULT_IMAGE_PROMPT;
 }

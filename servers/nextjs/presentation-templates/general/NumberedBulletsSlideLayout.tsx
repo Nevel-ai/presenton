@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { ImageSchema } from '@/presentation-templates/defaultSchemes';
+import { ImageSchema, getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 export const layoutId = 'numbered-bullets-slide'
 export const layoutName = 'Numbered Bullets'
@@ -97,8 +97,8 @@ const NumberedBulletsSlideLayout: React.FC<NumberedBulletsSlideLayoutProps> = ({
                         {/* Image Section */}
                         <div className="flex-shrink-0 w-80 h-48">
                             <img
-                                src={slideData?.image?.__image_url__ || ''}
-                                alt={slideData?.image?.__image_prompt__ || slideData?.title || ''}
+                                src={getImageUrl(slideData?.image)}
+                                alt={getImagePrompt(slideData?.image) || slideData?.title || ''}
                                 className="w-full h-full object-cover rounded-lg shadow-md" style={{background:"var(--tertiary-accent-color,#e5e7eb)"}}
                             />
                         </div>
@@ -155,4 +155,4 @@ const NumberedBulletsSlideLayout: React.FC<NumberedBulletsSlideLayoutProps> = ({
     )
 }
 
-export default NumberedBulletsSlideLayout 
+export default NumberedBulletsSlideLayout

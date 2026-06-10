@@ -1,6 +1,6 @@
 import React from "react";
 import * as z from "zod";
-import { ImageSchema } from "@/presentation-templates/defaultSchemes";
+import { ImageSchema, getImageUrl } from "@/presentation-templates/defaultSchemes";
 
 export const layoutId = "market-size-pitchdeck-slide";
 export const layoutName = "Market Size Pitch Deck Slide";
@@ -111,14 +111,12 @@ const MarketSizeSlideLayout: React.FC<MarketSizeSlideProps> = ({
                 {slideData?.title || "Market Size"}
               </h1>
               <div className="w-full bg-[#CBE3CC] rounded-md mb-8 flex items-center justify-center">
-                {slideData?.mapImage?.__image_url__ && (
-                  <img
-                    src={slideData?.mapImage?.__image_url__}
-                    alt="Market World Map with Points"
-                    className="w-full object-contain rounded-md"
-                    style={{ maxHeight: 220 }}
-                  />
-                )}
+                <img
+                  src={getImageUrl(slideData?.mapImage)}
+                  alt="Market World Map with Points"
+                  className="w-full object-contain rounded-md"
+                  style={{ maxHeight: 220 }}
+                />
               </div>
               {slideData?.description && (
                 <p className="text-blue-600 text-sm leading-relaxed font-normal mb-12 max-w-lg text-left">

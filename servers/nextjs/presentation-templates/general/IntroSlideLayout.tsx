@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { ImageSchema } from '@/presentation-templates/defaultSchemes';
+import { ImageSchema, getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 export const layoutId = 'general-intro-slide'
 export const layoutName = 'Intro Slide'
@@ -74,8 +74,8 @@ const IntroSlideLayout: React.FC<IntroSlideLayoutProps> = ({ data: slideData }) 
                     <div className="flex-1 flex items-center justify-center pr-8">
                         <div className="w-full max-w-lg h-80 rounded-2xl overflow-hidden shadow-lg">
                             <img
-                                src={slideData?.image?.__image_url__ || ''}
-                                alt={slideData?.image?.__image_prompt__ || slideData?.title || ''}
+                                src={getImageUrl(slideData?.image)}
+                                alt={getImagePrompt(slideData?.image) || slideData?.title || ''}
                                 className="w-full h-full object-cover"
                             />
                         </div>
@@ -124,4 +124,4 @@ const IntroSlideLayout: React.FC<IntroSlideLayoutProps> = ({ data: slideData }) 
     )
 }
 
-export default IntroSlideLayout 
+export default IntroSlideLayout
