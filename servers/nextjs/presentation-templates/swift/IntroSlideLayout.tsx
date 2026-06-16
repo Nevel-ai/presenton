@@ -32,7 +32,7 @@ const Schema = z
     paragraph: z
       .string()
       .min(40)
-      .max(200)
+      .max(130)
       .default(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
       ),
@@ -173,5 +173,4 @@ const IntroSlideLayout: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default IntroSlideLayout
-
 

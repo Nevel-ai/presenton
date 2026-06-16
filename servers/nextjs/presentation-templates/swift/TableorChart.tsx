@@ -27,7 +27,7 @@ const ChartDatumSchema = z.object({
 
 const TableRowSchema = z.object({
   cells: z
-    .array(z.string().min(0).max(200))
+    .array(z.string().min(0).max(60))
     .min(2)
     .max(10)
     .default(["Row 1", "Value", "Value"])
@@ -40,7 +40,7 @@ const Schema = z
     description: z
       .string()
       .min(20)
-      .max(220)
+      .max(120)
       .default(
         "Present structured information in a flexible table or visualize it with a chart."
       ),
@@ -49,14 +49,14 @@ const Schema = z
 
     // Table configuration (generic)
     columns: z
-      .array(z.string().min(1).max(40))
+      .array(z.string().min(1).max(24))
       .min(2)
       .max(10)
       .default(["Column 1", "Column 2", "Column 3"]),
     rows: z
       .array(TableRowSchema)
       .min(1)
-      .max(30)
+      .max(8)
       .default([
         { cells: ["Row A", "✓", "-"] },
         { cells: ["Row B", "Text", "123"] },
@@ -275,5 +275,4 @@ const TableOrChart: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default TableOrChart
-
 

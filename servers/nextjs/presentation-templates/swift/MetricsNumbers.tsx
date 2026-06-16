@@ -13,7 +13,7 @@ const MetricSchema = z
     description: z
       .string()
       .min(10)
-      .max(140)
+      .max(80)
       .default("active users across multiple industries"),
   })
   .default({
@@ -38,7 +38,7 @@ const Schema = z
     leftBody: z
       .string()
       .min(30)
-      .max(220)
+      .max(120)
       .default(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
       ),
@@ -174,5 +174,4 @@ const MetricsNumbers: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default MetricsNumbers
-
 

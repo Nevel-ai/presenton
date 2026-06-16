@@ -51,8 +51,8 @@ const ImageSchema = z.object({
         title: z.string().min(10).max(36).default("Strategic Execution").meta({
           description: "Bullet title text. Designed for 24px. Max ~36 chars",
         }),
-        body: z.string().min(60).max(100).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.").meta({
-          description: "Bullet body text. Max ~100 chars",
+        body: z.string().min(30).max(80).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.").meta({
+          description: "Bullet body text. Max ~80 chars",
         }),
       })
     ).min(1).max(4).default([
@@ -89,12 +89,12 @@ const ImageSchema = z.object({
       heading: z.string().min(6).max(30).default("Our Journey").meta({
         description: "Right column heading. Max ~30 chars",
       }),
-      paragraph: z.string().min(80).max(200).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore.").meta({
-        description: "Right paragraph text. Max 200 chars",
+      paragraph: z.string().min(30).max(120).default("Use this paragraph for one compact synthesis of the numbered steps.").meta({
+        description: "Right paragraph text. Max 120 chars",
       }),
     }).default({
       heading: "Our Journey",
-      paragraph: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore.",
+      paragraph: "Use this paragraph for one compact synthesis of the numbered steps.",
     }),
   })
   

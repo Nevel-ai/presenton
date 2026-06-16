@@ -5,7 +5,7 @@ const ImageSchema = z.object({
 __image_url__: z.string().url().default("https://images.pexels.com/photos/31527637/pexels-photo-31527637.jpeg").meta({
     description: "URL to image",
 }),
-__image_prompt__: z.string().min(10).max(150).default("High-quality illustrative image for the left panel of a pitch deck cover").meta({
+__image_prompt__: z.string().min(10).max(120).default("High-quality illustrative image for the left panel of a pitch deck cover").meta({
     description: "Prompt used to generate the image. Max 30 words",
 }),
 })
@@ -67,7 +67,7 @@ titleBreakAfter: z.number().min(1).max(25).default(12).meta({
     description: "Character index to insert a line break in title",
 }),
 
-paragraph: z.string().min(50).max(200).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris").meta({
+paragraph: z.string().min(30).max(120).default("Use this opening paragraph for the deck context, audience, and single strongest takeaway.").meta({
     description: "Paragraph text block. Max 20 words",
 }),
 
@@ -83,7 +83,7 @@ introCard: z.object({
     date: "December 22, 2025",
 }),
 }).meta({
-maxWords: 460,
+maxWords: 220,
 })
 
 type SlideData = z.infer<typeof Schema>

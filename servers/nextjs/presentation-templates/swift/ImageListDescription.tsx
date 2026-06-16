@@ -31,7 +31,7 @@ const ItemSchema = z
     description: z
       .string()
       .min(10)
-      .max(140)
+      .max(90)
       .default("Short description for the image or item."),
     image: ImageSchema,
   })
@@ -48,14 +48,14 @@ const Schema = z
     description: z
       .string()
       .min(20)
-      .max(200)
+      .max(120)
       .default(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
       ),
     items: z
       .array(ItemSchema)
       .min(3)
-      .max(6)
+      .max(4)
       .default([
         ItemSchema.parse({}),
         ItemSchema.parse({ title: "Another Item", description: "Concise supporting text.", image: ImageSchema.parse({}) }),
@@ -167,5 +167,4 @@ const TeamMembers: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default TeamMembers
-
 
