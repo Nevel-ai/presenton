@@ -1,6 +1,6 @@
 import React from "react";
 import * as z from "zod";
-import { ImageSchema } from "@/presentation-templates/defaultSchemes";
+import { ImageSchema, getImagePrompt, getImageUrl } from "@/presentation-templates/defaultSchemes";
 
 export const layoutId = "product-overview-slide";
 export const layoutName = "Product Overview Slide";
@@ -163,9 +163,9 @@ const ProductOverviewSlideLayout: React.FC<ProductOverviewSlideLayoutProps> = ({
                     style={{ height: `${IMAGE_SECTION_HEIGHT + 28}px` }}
                   >
                     <img
-                      src={products[0].image.__image_url__}
+                      src={getImageUrl(products[0].image)}
                       alt={
-                        products[0].image.__image_prompt__ || products[0].title
+                        getImagePrompt(products[0].image) || products[0].title
                       }
                       className="w-full h-full object-cover"
                     />
@@ -189,9 +189,9 @@ const ProductOverviewSlideLayout: React.FC<ProductOverviewSlideLayoutProps> = ({
                     style={{ height: `${IMAGE_SECTION_HEIGHT + 28}px` }}
                   >
                     <img
-                      src={products[1].image.__image_url__}
+                      src={getImageUrl(products[1].image)}
                       alt={
-                        products[1].image.__image_prompt__ || products[1].title
+                        getImagePrompt(products[1].image) || products[1].title
                       }
                       className="w-full h-full object-cover"
                     />

@@ -1,6 +1,7 @@
 import os
 import shutil
 import aiohttp
+from copy import deepcopy
 from typing import List, Literal, Optional, Set
 import uuid
 from fastapi import HTTPException
@@ -9,11 +10,13 @@ from sqlmodel import select
 
 from models.pptx_models import PptxPresentationModel
 from models.presentation_and_path import PresentationAndPath
+from models.sql.image_asset import ImageAsset
 from models.sql.slide import SlideModel
 from services.database import async_session_maker
 from services.pptx_presentation_creator import PptxPresentationCreator
 from services.temp_file_service import TEMP_FILE_SERVICE
 from utils.asset_directory_utils import get_exports_directory
+from utils.process_slides import normalize_local_image_urls
 from utils.s3_utils import upload_file_to_s3
 
 
@@ -76,9 +79,69 @@ def _collect_screenshot_dirs(pptx_model: PptxPresentationModel) -> Set[str]:
     return dirs
 
 
+def _collect_local_image_urls(content: dict) -> Set[str]:
+    urls: Set[str] = set()
+
+    def visit(value):
+        if isinstance(value, dict):
+            image_url = value.get("__image_url__")
+            if isinstance(image_url, str) and image_url.startswith("/app_data/images/"):
+                urls.add(image_url)
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    visit(content)
+    return urls
+
+
+async def _normalize_persisted_slide_image_urls(presentation_id: uuid.UUID) -> None:
+    async with async_session_maker() as sql_session:
+        slides = (
+            await sql_session.scalars(
+                select(SlideModel).where(SlideModel.presentation == presentation_id)
+            )
+        ).all()
+        local_image_urls = set()
+        for slide in slides:
+            local_image_urls.update(_collect_local_image_urls(slide.content))
+
+        if not local_image_urls:
+            return
+
+        image_assets = (
+            await sql_session.scalars(
+                select(ImageAsset).where(
+                    ImageAsset.path.in_(list(local_image_urls)),
+                    ImageAsset.s3_url.is_not(None),
+                )
+            )
+        ).all()
+        image_s3_keys_by_path = {
+            asset.path: asset.s3_url
+            for asset in image_assets
+            if asset.path and asset.s3_url
+        }
+
+        updated = False
+        for slide in slides:
+            content = deepcopy(slide.content)
+            if normalize_local_image_urls(content, image_s3_keys_by_path):
+                slide.content = content
+                sql_session.add(slide)
+                updated = True
+
+        if updated:
+            await sql_session.commit()
+
+
 async def export_presentation(
     presentation_id: uuid.UUID, title: str, export_as: Literal["pptx", "pdf"]
 ) -> PresentationAndPath:
+    await _normalize_persisted_slide_image_urls(presentation_id)
+
     if export_as == "pptx":
 
         # Get the converted PPTX model from the Next.js service

@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { ImageSchema } from '@/presentation-templates/defaultSchemes';
+import { ImageSchema, getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 export const layoutId = 'team-slide'
 export const layoutName = 'Team Slide'
@@ -148,8 +148,8 @@ const TeamSlideLayout: React.FC<TeamSlideLayoutProps> = ({ data: slideData }) =>
                                     {/* Member Photo */}
                                     <div className="w-32 h-32 mx-auto rounded-lg overflow-hidden shadow-md" style={{background:"var(--tertiary-accent-color,#e5e7eb)"}}>
                                         <img
-                                            src={member.image.__image_url__ || ''}
-                                            alt={member.image.__image_prompt__ || member.name}
+                                            src={getImageUrl(member.image)}
+                                            alt={getImagePrompt(member.image) || member.name}
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
@@ -176,4 +176,4 @@ const TeamSlideLayout: React.FC<TeamSlideLayoutProps> = ({ data: slideData }) =>
     )
 }
 
-export default TeamSlideLayout 
+export default TeamSlideLayout

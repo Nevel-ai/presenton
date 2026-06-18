@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { ImageSchema } from '@/presentation-templates/defaultSchemes';
+import { ImageSchema, getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 export const layoutId = 'metrics-with-image-slide'
 export const layoutName = 'Metrics with Image'
@@ -96,8 +96,8 @@ const MetricsWithImageSlideLayout: React.FC<MetricsWithImageSlideLayoutProps> = 
                     <div className="flex-1 flex items-center justify-center pr-8">
                         <div className="w-full max-w-lg h-96 rounded-2xl overflow-hidden shadow-lg">
                             <img
-                                src={slideData?.image?.__image_url__ || ''}
-                                alt={slideData?.image?.__image_prompt__ || slideData?.title || ''}
+                                src={getImageUrl(slideData?.image)}
+                                alt={getImagePrompt(slideData?.image) || slideData?.title || ''}
                                 className="w-full h-full object-cover"
                             />
                         </div>
@@ -135,4 +135,4 @@ const MetricsWithImageSlideLayout: React.FC<MetricsWithImageSlideLayoutProps> = 
     )
 }
 
-export default MetricsWithImageSlideLayout 
+export default MetricsWithImageSlideLayout

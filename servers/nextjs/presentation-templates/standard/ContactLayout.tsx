@@ -1,5 +1,6 @@
 import React from 'react'
 import * as z from "zod";   
+import { getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 
 const ImageSchema = z.object({
@@ -166,8 +167,8 @@ const ImageSchema = z.object({
           <div className="grid grid-cols-[640px_1fr] gap-x-16 h-full">
             <div className="relative h-full overflow-hidden" style={{ backgroundColor: 'var(--tertiary-accent-color, #E5E7EB)' }}>
               <img
-                src={slideData?.leftPanel?.backgroundImage?.__image_url__ || ""}
-                alt={slideData?.leftPanel?.backgroundImage?.__image_prompt__ || "cover"}
+                src={getImageUrl(slideData?.leftPanel?.backgroundImage)}
+                alt={getImagePrompt(slideData?.leftPanel?.backgroundImage)}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             </div>

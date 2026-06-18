@@ -1,5 +1,6 @@
 import React from "react"
 import * as z from "zod"
+import { getIconQuery, getIconUrl } from "@/presentation-templates/defaultSchemes"
 
 const layoutId = "Timeline"
 const layoutName = "Timeline"
@@ -142,7 +143,7 @@ const Timeline: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
                 <div className="mt-4">
                   <div className="rounded-[16px] bg-white shadow-[0_16px_40px_rgba(0,0,0,0.08)] px-6 pt-6 pb-5 text-center w-[260px]">
                     <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'var(--primary-accent-color, #BFF4FF)' }}>
-                      <img src={it.icon.__icon_url__} alt={it.icon.__icon_query__} className="w-6 h-6 object-contain" />
+                      <img src={getIconUrl(it.icon)} alt={getIconQuery(it.icon)} className="w-6 h-6 object-contain" />
                     </div>
                     <div className="text-[18px] font-semibold" style={{ color: 'var(--text-heading-color, #111827)' }}>{it.heading}</div>
                     <p className="mt-3 text-[14px]" style={{ color: 'var(--text-body-color, #6B7280)' }}>{it.body}</p>
@@ -166,5 +167,4 @@ const Timeline: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default Timeline
-
 

@@ -1,6 +1,7 @@
 import React from 'react'
 // charts removed
 import * as z from "zod";
+import { getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 const ImageSchema = z.object({
     __image_url__: z.string().url().default("https://images.pexels.com/photos/31527637/pexels-photo-31527637.jpeg").meta({
@@ -149,8 +150,8 @@ const ImageSchema = z.object({
   
           <div className="relative" style={{ backgroundColor: 'var(--tertiary-accent-color, #E5E7EB)' }}>
             <img
-              src={slideData?.middleImage?.__image_url__ || ""}
-              alt={slideData?.middleImage?.__image_prompt__ || "image"}
+              src={getImageUrl(slideData?.middleImage)}
+              alt={getImagePrompt(slideData?.middleImage)}
               className="absolute inset-0 w-full h-full object-cover"
             />
             {/* overlay removed */}
