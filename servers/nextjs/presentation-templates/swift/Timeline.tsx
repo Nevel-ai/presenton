@@ -28,7 +28,7 @@ const ItemSchema = z
     body: z
       .string()
       .min(10)
-      .max(160)
+      .max(100)
       .default("Lorem ipsum dolor"),
     icon: IconSchema,
   })
@@ -44,7 +44,7 @@ const Schema = z
     subtitle: z
       .string()
       .min(20)
-      .max(200)
+      .max(120)
       .default(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa."
       ),

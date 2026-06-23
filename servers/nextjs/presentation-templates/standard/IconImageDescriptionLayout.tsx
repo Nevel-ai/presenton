@@ -10,7 +10,7 @@ const ImageSchema = z.object({
     __image_url__: z.string().url().default("https://via.placeholder.com/900x500").meta({
       description: "URL to image",
     }),
-    __image_prompt__: z.string().min(10).max(200).default("Wide landscape placeholder representing a slide image area").meta({
+    __image_prompt__: z.string().min(10).max(120).default("Wide landscape placeholder representing a slide image area").meta({
       description: "Prompt used to generate the image. Max 30 words",
     }),
   })
@@ -30,8 +30,8 @@ const ImageSchema = z.object({
   
   const Schema = z.object({
     meta: z.object({
-      maxWords: z.number().default(56),
-    }).default({ maxWords: 56 }),
+      maxWords: z.number().default(34),
+    }).default({ maxWords: 34 }),
     topBar: z.object({
       
       pageNumber: z.string().min(1).max(3).default("3").meta({
@@ -55,11 +55,11 @@ const ImageSchema = z.object({
         __icon_url__: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='%230A8016' aria-hidden='true'><path d='M10 6V7H7C5.895 7 5 7.895 5 9V18C5 19.105 5.895 20 7 20H17C18.105 20 19 19.105 19 18V9C19 7.895 18.105 7 17 7H14V6C14 4.895 13.105 4 12 4H12C10.895 4 10 4.895 10 6ZM12 6C12.552 6 13 6.448 13 7H11C11 6.448 11.448 6 12 6ZM7 9H17V11H7V9Z'/></svg>",
         __icon_query__: "badge document icon",
       }),
-      heading: z.string().min(22).max(70).default("Idea Generation and Validation").meta({
+      heading: z.string().min(8).max(50).default("Idea Generation and Validation").meta({
         description: "Card heading text. Max 10 words",
       }),
-      body: z.string().min(140).max(450).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.").meta({
-        description: "Card body paragraph. Max 80 words",
+      body: z.string().min(40).max(160).default("Summarize the main idea with one takeaway and one proof point. Keep the card compact.").meta({
+        description: "Card body paragraph. Max 25 words",
       }),
       image: ImageSchema.default({
         __image_url__: "https://via.placeholder.com/1200x600",
@@ -73,7 +73,7 @@ const ImageSchema = z.object({
         __icon_query__: "badge document icon",
       },
       heading: "Idea Generation and Validation",
-      body: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      body: "Summarize the main idea with one takeaway and one proof point. Keep the card compact.",
       image: {
         __image_url__: "https://via.placeholder.com/1200x600",
         __image_prompt__: "Optional supporting image inside card area",
@@ -82,7 +82,7 @@ const ImageSchema = z.object({
     // charts removed
     // diagram removed
   }).default({
-    meta: { maxWords: 56 },
+    meta: { maxWords: 34 },
     topBar: {  pageNumber: "3" },
     title: "Transforming Ideas into\nReality",
     backgroundImage: {
@@ -95,7 +95,7 @@ const ImageSchema = z.object({
         __icon_query__: "badge document icon",
       },
       heading: "Idea Generation and Validation",
-      body: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      body: "Summarize the main idea with one takeaway and one proof point. Keep the card compact.",
       image: { __image_url__: "https://via.placeholder.com/1200x600", __image_prompt__: "Optional supporting image inside card area" },
     },
     // charts removed

@@ -11,7 +11,7 @@ const PointSchema = z
     body: z
       .string()
       .min(30)
-      .max(220)
+      .max(110)
       .default(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa."
       ),
@@ -24,7 +24,7 @@ const Schema = z
     statement: z
       .string()
       .min(20)
-      .max(260)
+      .max(120)
       .default(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
       ),
@@ -125,5 +125,4 @@ const CommitmentTwoPoints: React.FC<SlideLayoutProps> = ({ data: slideData }) =>
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default CommitmentTwoPoints
-
 

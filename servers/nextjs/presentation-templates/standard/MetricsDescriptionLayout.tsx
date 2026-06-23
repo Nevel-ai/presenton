@@ -6,7 +6,7 @@ const ImageSchema = z.object({
     __image_url__: z.string().url().default("https://images.unsplash.com/photo-1503264116251-35a269479413?q=80&w=1200&auto=format&fit=crop").meta({
       description: "URL to image",
     }),
-    __image_prompt__: z.string().min(10).max(200).default("Elegant abstract green themed background for a presentation slide, minimal shapes, soft lighting").meta({
+    __image_prompt__: z.string().min(10).max(120).default("Elegant abstract green themed background for a presentation slide, minimal shapes, soft lighting").meta({
       description: "Prompt used to generate the image. Max 40 words",
     }),
   })
@@ -34,8 +34,8 @@ const ImageSchema = z.object({
     subtitle: z.string().min(8).max(28).default("Subtitle Here").meta({
       description: "Card subtitle. Max 5 words",
     }),
-    body: z.string().min(20).max(100).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do.").meta({
-      description: "Card body text. Max 100 characters",
+    body: z.string().min(20).max(80).default("Short context for the metric and why it matters.").meta({
+      description: "Card body text. Max 80 characters",
     }),
     icon: IconSchema.default({
       __icon_url__: "https://static.thenounproject.com/png/1783767-200.png",
@@ -50,7 +50,7 @@ const ImageSchema = z.object({
     title: z.string().min(12).max(70).default("Scaling New Heights Together").meta({
       description: "Main title. Single line up to ~34 chars or two lines up to ~70 chars. Max 9 words",
     }),
-    tagline: z.string().min(40).max(120).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna").meta({
+    tagline: z.string().min(30).max(100).default("Use a short tagline that frames the metric story and avoids paragraph density.").meta({
       description: "Subtitle/tagline under title. Max 20 words",
     }),
     decorativeLine: ImageSchema.default({
@@ -59,48 +59,34 @@ const ImageSchema = z.object({
     }).meta({
       description: "SVG decorative line asset",
     }),
-    cards: z.array(CardSchema).min(1).max(6).default([
+    cards: z.array(CardSchema).min(1).max(4).default([
       {
         number: "87",
         numberSymbol: "%",
         subtitle: "Customer Satisfaction",
-        body: "Our customers consistently rate their experience with our products and services as excellent.",
+        body: "Customers rate the product experience as excellent.",
         icon: { __icon_url__: "https://static.thenounproject.com/png/1783767-200.png", __icon_query__: "happy customer icon" },
       },
       {
         number: "2.5",
         numberSymbol: "M",
         subtitle: "Active Users Monthly",
-        body: "Growing user base actively engaging with our platform across multiple regions worldwide.",
+        body: "Monthly users are expanding across core regions.",
         icon: { __icon_url__: "https://static.thenounproject.com/png/1783767-200.png", __icon_query__: "users group icon" },
       },
       {
         number: "99",
         numberSymbol: "%",
         subtitle: "System Uptime",
-        body: "Maintaining exceptional reliability with industry-leading system availability and performance.",
+        body: "Reliability remains strong during peak usage.",
         icon: { __icon_url__: "https://static.thenounproject.com/png/1783767-200.png", __icon_query__: "server uptime icon" },
       },
       {
         number: "142",
         numberSymbol: "+",
         subtitle: "Global Partners",
-        body: "Strategic partnerships driving innovation and market expansion across key industry sectors.",
+        body: "Partners extend reach across key sectors.",
         icon: { __icon_url__: "https://static.thenounproject.com/png/1783767-200.png", __icon_query__: "handshake deal icon" },
-      },
-      {
-        number: "32",
-        numberSymbol: "x",
-        subtitle: "Revenue Growth",
-        body: "Year-over-year growth demonstrating strong market position and business model scalability.",
-        icon: { __icon_url__: "https://static.thenounproject.com/png/1783767-200.png", __icon_query__: "growth chart icon" },
-      },
-      {
-        number: "500",
-        numberSymbol: "K",
-        subtitle: "Carbon Offset",
-        body: "Committed to sustainability through significant carbon reduction and environmental initiatives.",
-        icon: { __icon_url__: "https://static.thenounproject.com/png/1783767-200.png", __icon_query__: "leaf sustainability icon" },
       },
     ]).meta({
       description: "Grid of cards with number block, subtitle, and body (<=100 chars)",

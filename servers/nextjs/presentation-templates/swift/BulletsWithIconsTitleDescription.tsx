@@ -15,7 +15,7 @@ const ItemSchema = z
     description: z
       .string()
       .min(0)
-      .max(160)
+      .max(90)
       .default(
         "Short supporting description that fits under the icon title."
       ),
@@ -41,7 +41,7 @@ const Schema = z
     sideParagraph: z
       .string()
       .min(0)
-      .max(300)
+      .max(120)
       .default(
         "Concise paragraph describing context. Keep it short and readable across one or two lines."
       ),

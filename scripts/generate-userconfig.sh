@@ -10,6 +10,9 @@ mkdir -p "$APP_DATA_DIR"
 # Defaults
 : "${LLM:=openai}"
 : "${OPENAI_MODEL:=gpt-4o}"
+: "${CUSTOM_LLM_URL:=}"
+: "${CUSTOM_LLM_API_KEY:=}"
+: "${CUSTOM_MODEL:=openai/gpt-4o}"
 : "${IMAGE_PROVIDER:=ideogram}"
 : "${OLLAMA_URL:=http://localhost:11434}"
 
@@ -19,6 +22,9 @@ cat > "$USER_CONFIG_PATH" <<EOF
   "OPENAI_API_KEY": "${OPENAI_API_KEY:-}",
   "OPENAI_PROXY_URL": "${OPENAI_PROXY_URL:-}",
   "OPENAI_MODEL": "${OPENAI_MODEL}",
+  "CUSTOM_LLM_URL": "${CUSTOM_LLM_URL}",
+  "CUSTOM_LLM_API_KEY": "${CUSTOM_LLM_API_KEY}",
+  "CUSTOM_MODEL": "${CUSTOM_MODEL}",
   "OLLAMA_URL": "${OLLAMA_URL}",
   "IMAGE_PROVIDER": "${IMAGE_PROVIDER}",
   "IDEOGRAM_API_KEY": "${IDEOGRAM_API_KEY:-}",
@@ -31,5 +37,4 @@ cat > "$USER_CONFIG_PATH" <<EOF
 EOF
 
 echo "Generated $USER_CONFIG_PATH"
-
 

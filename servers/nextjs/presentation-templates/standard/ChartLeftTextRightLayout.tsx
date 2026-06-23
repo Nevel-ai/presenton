@@ -35,10 +35,10 @@ const Schema = z.object({
     .meta({ description: 'Main heading (max ~7 words)' }),
   paragraph: z
     .string()
-    .min(50)
-    .max(200)
+    .min(30)
+    .max(120)
     .default(
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
+      'Key metrics show where momentum is strong and where the team should focus next.'
     )
     .meta({ description: 'Supporting description' }),
   chart: z
@@ -173,5 +173,4 @@ const dynamicSlideLayout: React.FC<SlideLayoutProps> = ({ data: slideData }) => 
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default dynamicSlideLayout
-
 

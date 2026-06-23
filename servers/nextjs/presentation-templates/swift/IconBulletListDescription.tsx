@@ -28,7 +28,7 @@ const FeatureSchema = z
     body: z
       .string()
       .min(20)
-      .max(140)
+      .max(90)
       .default("Lorem ipsum dolor sit amet, dolor sit amet."),
     icon: IconSchema,
   })
@@ -49,7 +49,7 @@ const Schema = z
     description: z
       .string()
       .min(30)
-      .max(200)
+      .max(120)
       .default(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor."
       ),

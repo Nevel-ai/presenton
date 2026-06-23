@@ -7,7 +7,7 @@ const ImageSchema = z.object({
 __image_url__: z.string().url().default("https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=1200&auto=format&fit=crop").meta({
     description: "URL to image",
 }),
-__image_prompt__: z.string().min(10).max(150).default("Abstract light background for slide header area").meta({
+__image_prompt__: z.string().min(10).max(120).default("Abstract light background for slide header area").meta({
     description: "Prompt used to generate the image. Max 30 words",
 }),
 })
@@ -55,11 +55,11 @@ topBar: z.object({
     
     marker: "2",
 }),
-title: z.string().min(20).max(68).default("Our Vision And Strategy For Excellence").meta({
+title: z.string().min(10).max(60).default("Our Vision And Strategy For Excellence").meta({
     description: "Main slide title. Max 10 words",
 }),
-description: z.string().min(70).max(200).default("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation").meta({
-    description: "Lead paragraph. Max 35 words",
+description: z.string().min(30).max(120).default("Summarize the metric story in one compact sentence before the cards.").meta({
+    description: "Lead paragraph. Max 18 words",
 }),
 cards: z.array(CardSchema).min(1).max(4).default([
     {
@@ -93,7 +93,7 @@ chartPalette: z.array(z.string().min(4).max(20)).min(2).max(6).default(["var(--p
 }).default({
 topBar: {  marker: "2" },
 title: "Our Vision And Strategy For Excellence",
-description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation",
+description: "Summarize the metric story in one compact sentence before the cards.",
 cards: [
     { title: "Research", value: 67, unit: "K", description: "Lorem ipsum dolor sit amet, consectetur" },
     { title: "Ops", value: 42, unit: "M", description: "Lorem ipsum dolor sit amet, consectetur" },
