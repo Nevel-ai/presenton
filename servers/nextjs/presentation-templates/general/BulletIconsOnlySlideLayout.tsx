@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { ImageSchema, IconSchema } from '@/presentation-templates/defaultSchemes';
+import { ImageSchema, IconSchema, getIconQuery, getIconUrl, getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 import { RemoteSvgIcon } from '@/app/hooks/useRemoteSvgIcon';
 
 export const layoutId = 'bullet-icons-only-slide'
@@ -144,11 +144,11 @@ const BulletIconsOnlySlideLayout: React.FC<BulletIconsOnlySlideLayoutProps> = ({
                                     {/* Icon */}
                                     <div style={{background:"var(--primary-accent-color,#9333ea)"}} className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center">
                                         <RemoteSvgIcon
-                                            url={bullet.icon.__icon_url__}
+                                            url={getIconUrl(bullet.icon)}
                                             strokeColor={"currentColor"}
                                             className="w-6 h-6"
                                             color="var(--text-heading-color,#ffffff)"
-                                            title={bullet.icon.__icon_query__}
+                                            title={getIconQuery(bullet.icon)}
                                         />
                                     </div>
 
@@ -191,8 +191,8 @@ const BulletIconsOnlySlideLayout: React.FC<BulletIconsOnlySlideLayoutProps> = ({
                         {/* Main Image */}
                         <div className="w-full h-80 rounded-2xl overflow-hidden shadow-lg">
                             <img
-                                src={slideData?.image?.__image_url__ || ''}
-                                alt={slideData?.image?.__image_prompt__ || slideData?.title || ''}
+                                src={getImageUrl(slideData?.image)}
+                                alt={getImagePrompt(slideData?.image) || slideData?.title || ''}
                                 className="w-full h-full object-cover"
                             />
                         </div>

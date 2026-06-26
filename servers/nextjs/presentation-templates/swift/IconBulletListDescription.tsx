@@ -1,6 +1,7 @@
 import React from "react"
 import * as z from "zod"
 import { RemoteSvgIcon } from "@/app/hooks/useRemoteSvgIcon";
+import { getIconQuery, getIconUrl } from "@/presentation-templates/defaultSchemes"
 
 const layoutId = "icon-bullet-list-description-slide"
 const layoutName = "Icon Bullet List Description"      
@@ -168,11 +169,11 @@ const FeatureCards: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
                 <div className="px-6 py-5">
                   <div className="w-10 h-10 rounded-sm flex items-center justify-center" style={{ backgroundColor: 'var(--secondary-accent-color, #FFFFFF)' }}>
                     <RemoteSvgIcon
-                      url={f.icon.__icon_url__}
+                      url={getIconUrl(f.icon)}
                       strokeColor={"currentColor"}
                       className="w-6 h-6"
                       color="var(--text-heading-color, #111827)"
-                      title={f.icon.__icon_query__}
+                      title={getIconQuery(f.icon)}
                     />
                   </div>
                   <div className="mt-4 text-[18px] font-semibold whitespace-pre-line" style={{ color: 'var(--text-heading-color, #111827)' }}>{f.title}</div>
@@ -196,5 +197,4 @@ const FeatureCards: React.FC<SlideLayoutProps> = ({ data: slideData }) => {
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default FeatureCards
-
 

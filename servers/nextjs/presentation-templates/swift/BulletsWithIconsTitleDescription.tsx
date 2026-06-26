@@ -1,7 +1,7 @@
 import React from "react"
 import * as z from "zod"
 
-import { IconSchema, ImageSchema } from '@/presentation-templates/defaultSchemes';
+import { IconSchema, ImageSchema, getIconQuery, getIconUrl } from '@/presentation-templates/defaultSchemes';
 import { RemoteSvgIcon } from "@/app/hooks/useRemoteSvgIcon";
 
 const layoutId = "bullet-with-icons-title-description"
@@ -206,11 +206,11 @@ const InfographicFourIcons: React.FC<SlideLayoutProps> = ({ data }) => {
                   >
                     {/* Icon */}
                     <RemoteSvgIcon
-                      url={item.icon.__icon_url__}
+                      url={getIconUrl(item.icon)}
                       strokeColor={"currentColor"}
                       className="w-14 h-14"
                       color="var(--text-heading-color, #111827)"
-                      title={item.icon.__icon_query__}
+                      title={getIconQuery(item.icon)}
                     />
                   </div>
                 </div>
@@ -238,5 +238,4 @@ const InfographicFourIcons: React.FC<SlideLayoutProps> = ({ data }) => {
 
 export { Schema, layoutId, layoutName, layoutDescription }
 export default InfographicFourIcons
-
 

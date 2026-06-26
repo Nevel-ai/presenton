@@ -1,5 +1,6 @@
 import React from 'react'
 import * as z from "zod";
+import { getImagePrompt, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 
 const ImageSchema = z.object({
@@ -132,7 +133,7 @@ const ImageSchema = z.object({
                 </div>
               </div>
               <div className="relative flex-1 min-h-[300px]" style={{ backgroundColor: 'var(--tertiary-accent-color, #E5E7EB)' }}>
-                <img src={card.photo.__image_url__} alt={card.photo.__image_prompt__} className="absolute inset-0 w-full h-full object-cover" />
+                <img src={getImageUrl(card.photo)} alt={getImagePrompt(card.photo)} className="absolute inset-0 w-full h-full object-cover" />
               </div>
                 </div>
               ))}

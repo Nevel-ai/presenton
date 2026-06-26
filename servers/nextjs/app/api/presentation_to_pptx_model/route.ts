@@ -134,8 +134,30 @@ async function getBrowserAndPage(id: string): Promise<[Browser, Page]> {
     waitUntil: "networkidle0",
     timeout: 300000,
   });
+  await waitForImages(page);
   console.log('Start new page: ', `http://localhost/pdf-maker?id=${id}`)
   return [browser, page];
+}
+
+async function waitForImages(page: Page) {
+  await page.evaluate(async () => {
+    const images = Array.from(document.images);
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete) return Promise.resolve();
+
+        return new Promise<void>((resolve) => {
+          const done = () => {
+            window.clearTimeout(timeout);
+            resolve();
+          };
+          const timeout = window.setTimeout(done, 30000);
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+        });
+      })
+    );
+  });
 }
 
 async function closeBrowserAndPage(browser: Browser | null, page: Page | null) {

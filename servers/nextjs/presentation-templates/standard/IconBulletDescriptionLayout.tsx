@@ -2,6 +2,7 @@ import { RemoteSvgIcon } from '@/app/hooks/useRemoteSvgIcon';
 import React from 'react'
 // charts removed
 import * as z from "zod";
+import { getIconQuery, getIconUrl } from '@/presentation-templates/defaultSchemes';
 
 
 const ImageSchema = z.object({
@@ -126,11 +127,11 @@ const ImageSchema = z.object({
                     <div className="w-[88px] h-[88px] rounded-full flex items-center justify-center overflow-hidden select-none" style={{ backgroundColor: 'var(--card-background-color, #FFFFFF)' }}>
                       {item.symbolIcon?.__icon_url__ ? (
                         <RemoteSvgIcon
-                      url={item.symbolIcon.__icon_url__}
+                      url={getIconUrl(item.symbolIcon)}
                       strokeColor={"currentColor"}
                       className="w-14 h-14"
                       color="var(--text-heading-color, #111827)"
-                      title={item.symbolIcon.__icon_query__}
+                      title={getIconQuery(item.symbolIcon)}
                     />
                       ) : (
                         <span className="text-[34px] font-semibold" style={{ color: 'var(--primary-accent-color, #1B8C2D)' }}>{item.symbolText}</span>

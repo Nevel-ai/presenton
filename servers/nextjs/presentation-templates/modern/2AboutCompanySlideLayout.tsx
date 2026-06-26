@@ -1,6 +1,6 @@
 import React from "react";
 import * as z from "zod";
-import { ImageSchema, IconSchema } from "@/presentation-templates/defaultSchemes";
+import { ImageSchema, IconSchema, getImagePrompt, getImageUrl } from "@/presentation-templates/defaultSchemes";
 
 export const layoutId = "about-company-slide";
 export const layoutName = "About Our Company Slide";
@@ -71,8 +71,8 @@ const AboutCompanySlideLayout: React.FC<AboutCompanySlideLayoutProps> = ({
             <div className="w-full h-96 overflow-hidden">
               {slideData?.image ? (
                 <img
-                  src={slideData.image.__image_url__}
-                  alt={slideData.image.__image_prompt__}
+                  src={getImageUrl(slideData.image)}
+                  alt={getImagePrompt(slideData.image)}
                   className="w-full h-full object-cover"
                 />
               ) : (

@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { IconSchema } from '@/presentation-templates/defaultSchemes';
+import { IconSchema, getIconQuery, getIconUrl } from '@/presentation-templates/defaultSchemes';
 import { RemoteSvgIcon } from '@/app/hooks/useRemoteSvgIcon';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Cell, ResponsiveContainer } from "recharts";
@@ -290,11 +290,11 @@ const ChartWithBulletsSlideLayout: React.FC<ChartWithBulletsSlideLayoutProps> = 
                                 <div className="flex items-center space-x-3 mb-3">
                                     <div style={{background:"var(--primary-accent-color,#9333ea)"}} className="w-8 h-8 rounded-lg flex items-center justify-center">
                                         <RemoteSvgIcon
-                                            url={bullet.icon.__icon_url__}
+                                            url={getIconUrl(bullet.icon)}
                                             strokeColor={"currentColor"}
                                             className="w-5 h-5"
                                             color="var(--text-heading-color,#ffffff)"
-                                            title={bullet.icon.__icon_query__}
+                                            title={getIconQuery(bullet.icon)}
                                         />
                                     </div>
                                     <h3 style={{color:"var(--text-heading-color,#ffffff)"}} className="text-lg font-semibold">

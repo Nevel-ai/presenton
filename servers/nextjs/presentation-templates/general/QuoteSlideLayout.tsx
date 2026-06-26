@@ -1,6 +1,6 @@
 import React from 'react'
 import * as z from "zod";
-import { ImageSchema } from '@/presentation-templates/defaultSchemes';
+import { ImageSchema, getImageUrl } from '@/presentation-templates/defaultSchemes';
 
 export const layoutId = 'quote-slide'
 export const layoutName = 'Quote'
@@ -62,7 +62,7 @@ const QuoteSlideLayout: React.FC<QuoteSlideLayoutProps> = ({ data: slideData }) 
                 <div
                     className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
                     style={{
-                        backgroundImage: `url('${slideData?.backgroundImage?.__image_url__ || ''}')`,
+                        backgroundImage: `url('${getImageUrl(slideData?.backgroundImage)}')`,
                     }}
                 />
 
@@ -127,4 +127,4 @@ const QuoteSlideLayout: React.FC<QuoteSlideLayoutProps> = ({ data: slideData }) 
     )
 }
 
-export default QuoteSlideLayout 
+export default QuoteSlideLayout

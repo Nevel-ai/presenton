@@ -14,6 +14,7 @@ from utils.llm_calls.edit_slide_html import get_edited_slide_html
 from utils.llm_calls.select_slide_type_on_edit import get_slide_layout_from_prompt
 from utils.process_slides import (
     process_old_and_new_slides_and_fetch_assets,
+    process_slide_add_placeholder_assets,
     process_slide_and_fetch_assets,
 )
 from models.presentation_with_slides import PresentationWithSlides
@@ -274,6 +275,7 @@ async def create_slide(
 
     # Fetch and attach assets for the new slide
     image_generation_service = ImageGenerationService(get_images_directory())
+    process_slide_add_placeholder_assets(new_slide)
     generated_assets = await process_slide_and_fetch_assets(
         image_generation_service, new_slide
     )
