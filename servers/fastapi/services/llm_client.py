@@ -57,6 +57,7 @@ from utils.get_env import (
     get_web_grounding_env,
 )
 from utils.llm_provider import get_llm_provider, get_model
+from utils.openrouter_trace_context import merge_openrouter_extra_body
 from utils.parsers import parse_bool_or_none
 from utils.schema_utils import (
     ensure_strict_json_schema,
@@ -228,7 +229,7 @@ class LLMClient:
             messages=[message.model_dump() for message in messages],
             max_completion_tokens=max_tokens,
             tools=tools,
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
         )
         tool_calls = response.choices[0].message.tool_calls
         if tool_calls:
@@ -261,7 +262,7 @@ class LLMClient:
                 messages=new_messages,
                 max_tokens=max_tokens,
                 tools=tools,
-                extra_body=extra_body,
+                extra_body=merge_openrouter_extra_body(extra_body),
                 depth=depth + 1,
             )
 
@@ -419,7 +420,7 @@ class LLMClient:
             model=model,
             messages=messages,
             max_tokens=max_tokens,
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
             depth=depth,
         )
 
@@ -529,7 +530,7 @@ class LLMClient:
             ),
             max_completion_tokens=max_tokens,
             tools=all_tools,
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
         )
 
         content = response.choices[0].message.content
@@ -576,7 +577,7 @@ class LLMClient:
                     strict=strict,
                     max_tokens=max_tokens,
                     tools=all_tools,
-                    extra_body=extra_body,
+                    extra_body=merge_openrouter_extra_body(extra_body),
                     depth=depth + 1,
                 )
         if content:
@@ -788,7 +789,7 @@ class LLMClient:
             response_format=response_format,
             strict=strict,
             max_tokens=max_tokens,
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
             depth=depth,
         )
 
@@ -875,7 +876,7 @@ class LLMClient:
             messages=[message.model_dump() for message in messages],
             max_completion_tokens=max_tokens,
             tools=tools,
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
             stream=True,
         ):
             event: OpenAIChatCompletionChunk = event
@@ -946,7 +947,7 @@ class LLMClient:
                 messages=new_messages,
                 max_tokens=max_tokens,
                 tools=tools,
-                extra_body=extra_body,
+                extra_body=merge_openrouter_extra_body(extra_body),
                 depth=depth + 1,
             ):
                 yield event
@@ -1110,7 +1111,7 @@ class LLMClient:
             model=model,
             messages=messages,
             max_tokens=max_tokens,
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
             depth=depth,
         )
 
@@ -1222,7 +1223,7 @@ class LLMClient:
                 if not use_tool_calls_for_structured_output
                 else None
             ),
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
             stream=True,
         ):
             event: OpenAIChatCompletionChunk = event
@@ -1300,7 +1301,7 @@ class LLMClient:
                 strict=strict,
                 tools=all_tools,
                 response_format=response_schema,
-                extra_body=extra_body,
+                extra_body=merge_openrouter_extra_body(extra_body),
                 depth=depth + 1,
             ):
                 yield event
@@ -1532,7 +1533,7 @@ class LLMClient:
             response_format=response_format,
             strict=strict,
             max_tokens=max_tokens,
-            extra_body=extra_body,
+            extra_body=merge_openrouter_extra_body(extra_body),
             depth=depth,
         )
 
@@ -1601,6 +1602,7 @@ class LLMClient:
                 }
             ],
             input=query,
+            extra_body=merge_openrouter_extra_body(),
         )
         return response.output_text
 
