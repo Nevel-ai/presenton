@@ -108,6 +108,19 @@ class LLMClient:
     def disable_thinking(self) -> bool:
         return parse_bool_or_none(get_disable_thinking_env()) or False
 
+    # ? Extra body for OpenAI-compatible calls that pass function tools
+    def _extra_body_with_tools(
+        self, extra_body: Optional[dict], tools: Optional[list]
+    ) -> Optional[dict]:
+        merged = merge_openrouter_extra_body(extra_body)
+        # Reasoning models reject a non-"none" reasoning_effort together with
+        # function tools on /v1/chat/completions (OpenAI and OpenRouter alike),
+        # regardless of which model is configured; force it off whenever tools
+        # are sent so tool calls never trip over the gateway's default effort.
+        if tools:
+            merged = {"reasoning_effort": "none", **(merged or {})}
+        return merged
+
     # ? Clients
     def _get_client(self):
         match self.llm_provider:
@@ -229,7 +242,7 @@ class LLMClient:
             messages=[message.model_dump() for message in messages],
             max_completion_tokens=max_tokens,
             tools=tools,
-            extra_body=merge_openrouter_extra_body(extra_body),
+            extra_body=self._extra_body_with_tools(extra_body, tools),
         )
         tool_calls = response.choices[0].message.tool_calls
         if tool_calls:
@@ -530,7 +543,7 @@ class LLMClient:
             ),
             max_completion_tokens=max_tokens,
             tools=all_tools,
-            extra_body=merge_openrouter_extra_body(extra_body),
+            extra_body=self._extra_body_with_tools(extra_body, all_tools),
         )
 
         content = response.choices[0].message.content
@@ -876,7 +889,7 @@ class LLMClient:
             messages=[message.model_dump() for message in messages],
             max_completion_tokens=max_tokens,
             tools=tools,
-            extra_body=merge_openrouter_extra_body(extra_body),
+            extra_body=self._extra_body_with_tools(extra_body, tools),
             stream=True,
         ):
             event: OpenAIChatCompletionChunk = event
@@ -1223,7 +1236,7 @@ class LLMClient:
                 if not use_tool_calls_for_structured_output
                 else None
             ),
-            extra_body=merge_openrouter_extra_body(extra_body),
+            extra_body=self._extra_body_with_tools(extra_body, all_tools),
             stream=True,
         ):
             event: OpenAIChatCompletionChunk = event
