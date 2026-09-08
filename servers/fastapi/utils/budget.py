@@ -182,14 +182,36 @@ class PresentationBudget:
                 or type(max_output_tokens) is not int or not 1 <= max_output_tokens <= 32_000 or self._step > 511):
             self.deny("budget_invalid_transition")
             raise PresentationBudgetError("budget_invalid_transition")
-        step = self._step
-        self._step += 1  # Event-loop-local counter; no await before increment.
-        task = asyncio.create_task(asyncio.to_thread(self._callback, self._token, {
-            "action": "reserve_presenton_openai", "step": step, "modelId": "gpt-5.6-luna",
+        return await self._reserve({
+            "action": "reserve_presenton_openai", "modelId": "gpt-5.6-luna",
             "operation": operation, "inputBytes": input_bytes, "maxOutputTokens": max_output_tokens,
-        }))
+        }, lambda result: self._operation(result, operation, max_output_tokens))
+
+    async def reserve_ideogram(self):
+        from utils.budget_ideogram import IDEOGRAM_PROFILE, IdeogramBudgetOperation
+
+        def parse(result):
+            if result == {"kind": "bypass"}:
+                return None
+            if (not isinstance(result, dict) or set(result) != {"kind", "receipt", "mode", "profile"}
+                    or result["kind"] != "tracked_presenton_ideogram" or not credential(result["receipt"])
+                    or result["mode"] != self.mode or result["profile"] != IDEOGRAM_PROFILE
+                    or type(result["profile"].get("numImages")) is not int):
+                raise PresentationBudgetError("budget_invalid_transition")
+            return IdeogramBudgetOperation(self, result)
+
+        return await self._reserve({"action": "reserve_presenton_ideogram", "profile": dict(IDEOGRAM_PROFILE)}, parse)
+
+    async def _reserve(self, payload, parse):
+        self.ensure_active()
+        if self._step > 511:
+            self.deny("budget_invalid_transition")
+            raise PresentationBudgetError("budget_invalid_transition")
+        step = self._step
+        self._step += 1  # Shared event-loop counter across model/image calls.
+        task = asyncio.create_task(asyncio.to_thread(self._callback, self._token, {**payload, "step": step}))
         try:
-            admitted = self._operation(await asyncio.shield(task), operation, max_output_tokens)
+            admitted = parse(await asyncio.shield(task))
             try:
                 self.ensure_active()
             except PresentationBudgetError:
@@ -200,7 +222,7 @@ class PresentationBudget:
         except asyncio.CancelledError:
             self.deny()
             try:
-                admitted = self._operation(await _drain(task), operation, max_output_tokens)
+                admitted = parse(await _drain(task))
                 if admitted is not None:
                     await _drain(asyncio.create_task(admitted.release_unstarted()))
             except Exception:
@@ -276,7 +298,7 @@ class PresentationBudgetOperation:
             await self._observe(provider_id)
 
     async def _observe(self, provider_id):
-        prefix = "chatcmpl-" if self.operation == "chat" else "resp_"
+        prefix = "chatcmpl-" if self.operation == "chat" else "ideogram:" if self.operation == "ideogram" else "resp_"
         if (self._state != "started" or not isinstance(provider_id, str) or len(provider_id) > 256
                 or not re.fullmatch(re.escape(prefix) + r"[A-Za-z0-9_-]+", provider_id)):
             self._fail()

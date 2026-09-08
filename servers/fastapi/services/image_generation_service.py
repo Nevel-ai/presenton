@@ -19,6 +19,8 @@ from utils.image_provider import (
     is_ideogram_selected,
 )
 from utils.s3_utils import upload_file_to_s3
+from utils.budget import current_presentation_budget, PresentationBudgetError
+from utils.budget_ideogram import generate_budgeted_ideogram
 import uuid
 
 
@@ -107,6 +109,12 @@ class ImageGenerationService:
             # not exist, or the upload failed.
             raise Exception(f"Image not found or upload failed for {image_path}")
 
+        except PresentationBudgetError:
+            run = current_presentation_budget.get()
+            if run is not None and run.mode == "shadow":
+                run.raise_if_denied()
+                return "/static/images/placeholder.jpg"
+            raise
         except Exception as e:
             print(f"Error generating image: {e}")
             return "/static/images/placeholder.jpg"
@@ -144,6 +152,10 @@ class ImageGenerationService:
 
     async def get_image_from_ideogram(self, prompt: str, output_directory: str) -> str:
         api_key = get_ideogram_api_key_env()
+        run = current_presentation_budget.get()
+        if run is not None:
+            image_url = await generate_budgeted_ideogram(run, prompt, api_key)
+            return await download_file(image_url, output_directory)
         if not api_key:
             raise Exception("IDEOGRAM_API_KEY must be provided")
 
