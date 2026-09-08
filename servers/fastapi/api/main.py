@@ -5,6 +5,7 @@ from api.middlewares import OpenRouterTraceMiddleware, UserConfigEnvUpdateMiddle
 from api.v1.ppt.router import API_V1_PPT_ROUTER
 from api.v1.webhook.router import API_V1_WEBHOOK_ROUTER
 from api.v1.mock.router import API_V1_MOCK_ROUTER
+from utils.budget_middleware import PresentationBudgetMiddleware
 
 
 app = FastAPI(lifespan=app_lifespan)
@@ -27,3 +28,6 @@ app.add_middleware(
 
 app.add_middleware(UserConfigEnvUpdateMiddleware)
 app.add_middleware(OpenRouterTraceMiddleware)
+# Last registered = outermost: verify and strip the private capability before
+# user-config mutation, trace handling or routing. No-capability traffic is unchanged.
+app.add_middleware(PresentationBudgetMiddleware)

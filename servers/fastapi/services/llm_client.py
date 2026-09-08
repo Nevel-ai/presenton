@@ -59,6 +59,7 @@ from utils.get_env import (
 from utils.llm_provider import get_llm_provider, get_model
 from utils.openrouter_trace_context import merge_openrouter_extra_body
 from utils.budget import current_presentation_budget, PresentationBudgetError
+from utils.budget_profile import assert_budget_profile
 from utils.parsers import parse_bool_or_none
 from utils.schema_utils import (
     ensure_strict_json_schema,
@@ -69,6 +70,7 @@ from utils.schema_utils import (
 
 class LLMClient:
     def __init__(self):
+        assert_budget_profile(current_presentation_budget.get())
         self.llm_provider = get_llm_provider()
         self._openai_http_client: httpx.AsyncClient | None = None
         self._client = self._get_client()

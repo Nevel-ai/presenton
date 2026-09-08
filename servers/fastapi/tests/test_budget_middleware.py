@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+from unittest.mock import patch
 
 from utils.budget import PresentationBudgetError, current_presentation_budget
 from utils.budget_middleware import PresentationBudgetMiddleware
@@ -7,6 +8,11 @@ from test_budget_client import capability, fixture
 
 
 class MiddlewareTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        profile = patch.dict("os.environ", {"CAN_CHANGE_KEYS": "false", "LLM": "openai", "OPENAI_MODEL": "gpt-5.6-luna", "IMAGE_PROVIDER": "ideogram"})
+        profile.start()
+        self.addCleanup(profile.stop)
+
     async def invoke(self, app, headers=None, factory=None, path="/api/v1/ppt/presentation/build/presentation", method="GET"):
         output = []
 
@@ -47,6 +53,26 @@ class MiddlewareTests(unittest.IsolatedAsyncioTestCase):
             await send({"type": "http.response.start", "status": 200, "headers": []})
         output = await self.invoke(app, headers=[], factory=lambda token: self.fail("Unexpected issuance"))
         self.assertEqual(output[0]["headers"], [])
+
+    async def test_configuration_drift_is_rejected_before_downstream_middleware(self):
+        async def app(*args):
+            self.fail("Unsupported configuration reached application")
+
+        for name, value in [("CAN_CHANGE_KEYS", "true"), ("CAN_CHANGE_KEYS", ""), ("LLM", "custom"),
+                            ("OPENAI_MODEL", "other"), ("IMAGE_PROVIDER", "dall-e-3")]:
+            with self.subTest(name=name), patch.dict("os.environ", {name: value}):
+                output = await self.invoke(app)
+                self.assertEqual(output[0]["status"], 409)
+                self.assertIsNone(current_presentation_budget.get())
+
+    async def test_shadow_configuration_drift_does_not_change_routing(self):
+        async def app(scope, receive, send):
+            self.assertEqual(current_presentation_budget.get().mode, "shadow")
+            await send({"type": "http.response.start", "status": 200, "headers": []})
+
+        with patch.dict("os.environ", {"LLM": "custom"}):
+            output = await self.invoke(app, factory=lambda token: fixture("shadow")[0])
+        self.assertEqual(output[0]["status"], 200)
 
     async def test_invalid_and_duplicate_credentials_never_enter_application(self):
         async def app(*args):

@@ -21,6 +21,7 @@ from utils.image_provider import (
 from utils.s3_utils import upload_file_to_s3
 from utils.budget import current_presentation_budget, PresentationBudgetError
 from utils.budget_ideogram import generate_budgeted_ideogram
+from utils.budget_profile import assert_budget_profile
 import uuid
 
 
@@ -31,6 +32,7 @@ class ImageGenerationService:
         self.image_gen_func = self.get_image_gen_func()
 
     def get_image_gen_func(self):
+        assert_budget_profile(current_presentation_budget.get())
         if is_pixabay_selected():
             return self.get_image_from_pixabay
         elif is_pixels_selected():

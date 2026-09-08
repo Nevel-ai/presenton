@@ -4,6 +4,7 @@ import json
 import re
 
 from utils.budget import PresentationBudget, PresentationBudgetError, current_presentation_budget
+from utils.budget_profile import assert_budget_profile
 
 
 class PresentationBudgetMiddleware:
@@ -48,6 +49,7 @@ class PresentationBudgetMiddleware:
             except (UnicodeError, AttributeError):
                 raise PresentationBudgetError("budget_invalid_transition") from None
             run = self.budget_factory(credential)
+            assert_budget_profile(run)
             token = current_presentation_budget.set(run)
             # Headers are removed before routing/logging/provider parameter handling.
             private_scope = {**scope, "headers": [(name, value) for name, value in scope.get("headers", [])
