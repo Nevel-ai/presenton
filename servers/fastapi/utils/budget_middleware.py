@@ -39,6 +39,8 @@ class PresentationBudgetMiddleware:
             # Only current synchronous B2C entry points are budget-enabled.
             # In particular, never acknowledge an unowned /generate/async job.
             path = scope.get("path", "")
+            if path.startswith("/api/v1/budgeted-ppt/"):
+                path = "/api/v1/ppt/" + path[len("/api/v1/budgeted-ppt/"):]
             method = scope.get("method", "")
             paid_get = method == "GET" and re.fullmatch(r"/api/v1/ppt/(?:outlines/create|presentation/build)/[A-Za-z0-9-]+", path)
             paid_post = method == "POST" and path in {"/api/v1/ppt/presentation/prepare", "/api/v1/ppt/slide/create", "/api/v1/ppt/slide/edit"}
@@ -52,7 +54,7 @@ class PresentationBudgetMiddleware:
             assert_budget_profile(run)
             token = current_presentation_budget.set(run)
             # Headers are removed before routing/logging/provider parameter handling.
-            private_scope = {**scope, "headers": [(name, value) for name, value in scope.get("headers", [])
+            private_scope = {**scope, "path": path, "raw_path": path.encode("utf-8"), "headers": [(name, value) for name, value in scope.get("headers", [])
                                                   if not name.lower().startswith(b"x-nevel-budget-")]}
             await self.app(private_scope, receive, scoped_send)
             run.raise_if_denied()

@@ -49,7 +49,7 @@ class StackTests(unittest.IsolatedAsyncioTestCase):
             return StreamingResponse(stream(), background=BackgroundTask(background))
 
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://offline") as client:
-            response = await client.get("/api/v1/ppt/presentation/build/offline", headers={"x-nevel-budget-capability": capability()})
+            response = await client.get("/api/v1/budgeted-ppt/presentation/build/offline", headers={"x-nevel-budget-capability": capability()})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.text, "done")
         self.assertEqual(response.headers["x-nevel-budget-version"], "1")
@@ -57,6 +57,29 @@ class StackTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(current_presentation_budget.get())
         with self.assertRaises(PresentationBudgetError):
             run.ensure_active()
+
+    async def test_versioned_namespace_without_capability_never_enters_paid_route(self):
+        run, _ = fixture()
+        app = self.app(run)
+
+        @app.get("/api/v1/ppt/presentation/build/offline")
+        async def paid():
+            self.fail("Unauthenticated budget route reached paid work")
+
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://offline") as client:
+            response = await client.get("/api/v1/budgeted-ppt/presentation/build/offline")
+        self.assertEqual(response.status_code, 404)
+
+    async def test_old_revision_returns_404_without_entering_paid_route(self):
+        old_app = FastAPI()
+
+        @old_app.get("/api/v1/ppt/presentation/build/offline")
+        async def paid():
+            self.fail("Old revision performed unmetered work")
+
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(old_app), base_url="http://offline") as client:
+            response = await client.get("/api/v1/budgeted-ppt/presentation/build/offline", headers={"x-nevel-budget-capability": capability()})
+        self.assertEqual(response.status_code, 404)
 
     async def test_config_mutation_is_not_entered_on_enforce_drift(self):
         run, _ = fixture()
