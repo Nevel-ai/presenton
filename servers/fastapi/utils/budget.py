@@ -129,6 +129,8 @@ class PresentationBudget:
         self._step = 0
         self._closed = False
         self._failure = None
+        self._http_client = None
+        self._http_proxy = None
 
     def __repr__(self):
         return f"PresentationBudget(mode={self.mode!r})"
@@ -147,6 +149,21 @@ class PresentationBudget:
 
     async def aclose(self):
         self._closed = True
+        if self._http_client is not None:
+            await self._http_client.aclose()
+            self._http_client = None
+
+    def openai_http_client(self, proxy=None):
+        self.ensure_active()
+        if self._http_client is None:
+            import httpx
+            from utils.budget_openai_http import PresentationOpenAITransport
+            self._http_client = httpx.AsyncClient(transport=PresentationOpenAITransport(self, proxy=proxy), trust_env=False)
+            self._http_proxy = proxy
+        elif proxy != self._http_proxy:
+            self.deny("budget_invalid_transition")
+            raise PresentationBudgetError("budget_invalid_transition")
+        return self._http_client
 
     def _operation(self, result, operation, output):
         if result == {"kind": "bypass"}:

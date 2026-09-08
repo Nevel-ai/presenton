@@ -58,6 +58,7 @@ from utils.get_env import (
 )
 from utils.llm_provider import get_llm_provider, get_model
 from utils.openrouter_trace_context import merge_openrouter_extra_body
+from utils.budget import current_presentation_budget, PresentationBudgetError
 from utils.parsers import parse_bool_or_none
 from utils.schema_utils import (
     ensure_strict_json_schema,
@@ -74,6 +75,11 @@ class LLMClient:
         self.tool_calls_handler = LLMToolCallsHandler(self)
 
     def _get_openai_http_client(self) -> httpx.AsyncClient:
+        run = current_presentation_budget.get()
+        if run is not None:
+            # The request scope owns this pool. Per-LLM aclose must not close it
+            # while sibling slide/tool calls are still using it.
+            return run.openai_http_client(get_openai_proxy_url_env())
         if self._openai_http_client is None:
             proxy_url = get_openai_proxy_url_env()
             self._openai_http_client = httpx.AsyncClient(
@@ -123,6 +129,10 @@ class LLMClient:
 
     # ? Clients
     def _get_client(self):
+        run = current_presentation_budget.get()
+        if run is not None and run.mode == "enforce" and self.llm_provider != LLMProvider.OPENAI:
+            run.deny("budget_invalid_transition")
+            raise PresentationBudgetError("budget_invalid_transition")
         match self.llm_provider:
             case LLMProvider.OPENAI:
                 return self._get_openai_client()
@@ -150,6 +160,7 @@ class LLMClient:
             base_url=OPENAI_URL,
             api_key=get_openai_api_key_env(),
             http_client=self._get_openai_http_client(),
+            **({"max_retries": 0} if current_presentation_budget.get() is not None and current_presentation_budget.get().mode == "enforce" else {}),
         )
 
     def _get_google_client(self):
