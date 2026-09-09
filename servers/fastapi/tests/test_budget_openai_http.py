@@ -20,6 +20,44 @@ def completion():
 
 
 class TransportTests(unittest.IsolatedAsyncioTestCase):
+    async def test_parallel_metadata_preserves_custom_fields_without_receipts_or_enforce_changes_in_shadow(self):
+        for mode in ["shadow", "enforce"]:
+            run, calls, requests, client = await self.setup_client(completion(), mode)
+            body = {"model": "gpt-5.6-luna", "messages": [{"role": "user", "content": "hello"}],
+                    "max_tokens": 50, "metadata": {"tag": "existing", "budget_operation_id": "stale"}}
+            await asyncio.gather(*[client.post("https://api.openai.com/v1/chat/completions", json=body) for _ in range(2)])
+            sent = [json.loads(request.content) for request in requests]
+            self.assertEqual({b["metadata"]["budget_operation_id"] for b in sent},
+                             {"presentation:execution:build:0", "presentation:execution:build:1"})
+            for native in sent:
+                self.assertEqual(native["metadata"]["tag"], "existing")
+                self.assertEqual(native["metadata"]["budget_reservation_id"], "reservation00001")
+                self.assertNotIn("nbgt1.", json.dumps(native))
+                if mode == "shadow":
+                    self.assertEqual(native["max_tokens"], 50)
+                    self.assertNotIn("service_tier", native)
+            self.assertEqual(body["metadata"]["budget_operation_id"], "stale")
+            self.assertTrue(all(payload["correlationVersion"] == 1 for _, payload in calls if payload["action"].startswith("reserve")))
+            run.ensure_active()
+
+    async def test_metadata_overflow_and_invalid_values_fail_before_reservation(self):
+        for metadata in [{str(i): "x" for i in range(15)}, {"k": "x" * 513}, {"x" * 65: "v"}, {"k": 1}, []]:
+            _, calls, requests, client = await self.setup_client(completion())
+            with self.assertRaises(PresentationBudgetError):
+                await client.post("https://api.openai.com/v1/chat/completions", json={
+                    "model": "gpt-5.6-luna", "messages": [{"role": "user", "content": "hello"}], "metadata": metadata})
+            self.assertEqual(calls, [])
+            self.assertEqual(requests, [])
+
+    async def test_fourteen_metadata_entries_leave_exactly_two_safe_correlation_slots(self):
+        _, _, requests, client = await self.setup_client(completion())
+        metadata = {str(i): "x" * 512 for i in range(14)}
+        await client.post("https://api.openai.com/v1/chat/completions", json={
+            "model": "gpt-5.6-luna", "messages": [{"role": "user", "content": "hello"}], "metadata": metadata})
+        sent = json.loads(requests[0].content)["metadata"]
+        self.assertEqual(len(sent), 16)
+        self.assertTrue(all(sent[k] == v for k, v in metadata.items()))
+
     async def setup_client(self, response, mode="enforce"):
         run, calls = fixture(mode)
         requests = []
@@ -120,6 +158,8 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(calls[0][1]["operation"], "web_search")
         self.assertEqual(calls[-1][1]["usage"]["searchCalls"], 1)
         self.assertEqual(json.loads(requests[0].content)["max_tool_calls"], 1)
+        self.assertEqual(json.loads(requests[0].content)["metadata"], {
+            "budget_operation_id": "presentation:execution:build:0", "budget_reservation_id": "reservation00001"})
 
     async def test_truncated_stream_retains_hold_and_denies_new_work(self):
         data = completion()

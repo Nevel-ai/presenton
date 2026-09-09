@@ -27,6 +27,15 @@ def prepare_request(request, raw):
     body = json.loads(raw)
     if not isinstance(body, dict) or body.get("model") != "gpt-5.6-luna":
         _invalid()
+    metadata = body.get("metadata")
+    if metadata is not None:
+        # OpenAI metadata: at most16 keys,64char keys,512char string values.
+        # Reserve two slots before admission; never drop caller metadata or
+        # fail a native request by injecting more than the supported limit.
+        if (not isinstance(metadata, dict)
+                or len(set(metadata) | {"budget_operation_id", "budget_reservation_id"}) > 16
+                or any(not isinstance(k, str) or len(k) > 64 or not isinstance(v, str) or len(v) > 512 for k, v in metadata.items())):
+            _invalid()
     common = {"model", "user", "metadata", "service_tier", "temperature", "top_p", "stream", "tools", "tool_choice",
               "parallel_tool_calls", "store", "prompt_cache_key", "prompt_cache_options", "prompt_cache_retention"}
     allowed = common | ({"messages", "max_tokens", "max_completion_tokens", "stream_options", "response_format", "reasoning_effort",
@@ -224,6 +233,7 @@ class PresentationOpenAITransport(httpx.AsyncBaseTransport):
             return await self.native.send(request, stream=True)
         response = None
         try:
+            body["metadata"] = {**(body.get("metadata") or {}), **admitted.correlation}
             if self.run.mode == "enforce":
                 body["service_tier"] = "default"
                 if operation == "chat":

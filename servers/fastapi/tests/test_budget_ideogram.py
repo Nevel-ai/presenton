@@ -21,7 +21,8 @@ class IdeogramTests(unittest.IsolatedAsyncioTestCase):
             if reject:
                 raise PresentationBudgetError(reject)
             if payload["action"] == "reserve_presenton_ideogram":
-                return {"kind": "tracked_presenton_ideogram", "receipt": RECEIPT, "mode": mode, "profile": dict(IDEOGRAM_PROFILE)}
+                return {"kind": "tracked_presenton_ideogram", "receipt": RECEIPT, "mode": mode, "profile": dict(IDEOGRAM_PROFILE),
+                        "correlation": {"budget_operation_id": f"presentation:execution:build:{payload['step']}", "budget_reservation_id": "reservation00001"}}
             if payload["action"] == "reserve_presenton_openai":
                 return admission(payload, mode)
             return {"kind": "acknowledged"}
@@ -43,6 +44,8 @@ class IdeogramTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("multipart/form-data", request.headers["content-type"])
             self.assertIn(b'name="num_images"', request.content)
             self.assertNotIn(RECEIPT.encode(), request.content)
+            self.assertNotIn(b'budget_operation_id', request.content)
+            self.assertEqual(calls[0]["correlationVersion"], 1)
             self.assertFalse(any(name.startswith("x-nevel-budget-") for name in request.headers))
             return httpx.Response(200, json={"data": [{"url": IMAGE_URL, "is_image_safe": True}]})
 

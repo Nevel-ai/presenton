@@ -34,7 +34,8 @@ USAGE = dict(modelId="gpt-5.6-luna", serviceTier="default", inputTokens=1000, ca
 
 def admission(payload, mode="enforce"):
     return dict(kind="tracked_presenton_openai", receipt=RECEIPT, mode=mode, modelId="gpt-5.6-luna",
-                operation=payload["operation"], maxOutputTokens=payload["maxOutputTokens"], serviceTier="default", maxToolCalls=1)
+                operation=payload["operation"], maxOutputTokens=payload["maxOutputTokens"], serviceTier="default", maxToolCalls=1,
+                correlation={"budget_operation_id": f"presentation:execution:build:{payload.get('step', 0)}", "budget_reservation_id": "reservation00001"})
 
 
 def fixture(mode="enforce", callback=None):

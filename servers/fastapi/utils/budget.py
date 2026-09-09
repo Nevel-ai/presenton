@@ -168,7 +168,7 @@ class PresentationBudget:
     def _operation(self, result, operation, output):
         if result == {"kind": "bypass"}:
             return None
-        if (not isinstance(result, dict) or set(result) != {"kind", "receipt", "mode", "modelId", "operation", "maxOutputTokens", "serviceTier", "maxToolCalls"}
+        if (not isinstance(result, dict) or set(result) != {"kind", "receipt", "mode", "modelId", "operation", "maxOutputTokens", "serviceTier", "maxToolCalls", "correlation"}
                 or result["kind"] != "tracked_presenton_openai" or not credential(result["receipt"])
                 or result["mode"] != self.mode or result["modelId"] != "gpt-5.6-luna" or result["operation"] != operation
                 or result["serviceTier"] != "default" or type(result["maxToolCalls"]) is not int or result["maxToolCalls"] != 1
@@ -193,7 +193,7 @@ class PresentationBudget:
         def parse(result):
             if result == {"kind": "bypass"}:
                 return None
-            if (not isinstance(result, dict) or set(result) != {"kind", "receipt", "mode", "profile"}
+            if (not isinstance(result, dict) or set(result) != {"kind", "receipt", "mode", "profile", "correlation"}
                     or result["kind"] != "tracked_presenton_ideogram" or not credential(result["receipt"])
                     or result["mode"] != self.mode or result["profile"] != IDEOGRAM_PROFILE
                     or type(result["profile"].get("numImages")) is not int):
@@ -209,7 +209,7 @@ class PresentationBudget:
             raise PresentationBudgetError("budget_invalid_transition")
         step = self._step
         self._step += 1  # Shared event-loop counter across model/image calls.
-        task = asyncio.create_task(asyncio.to_thread(self._callback, self._token, {**payload, "step": step}))
+        task = asyncio.create_task(asyncio.to_thread(self._callback, self._token, {**payload, "step": step, "correlationVersion": 1}))
         try:
             admitted = parse(await asyncio.shield(task))
             try:
@@ -239,6 +239,14 @@ class PresentationBudget:
 
 class PresentationBudgetOperation:
     def __init__(self, run, admission):
+        pair = admission.get("correlation")
+        if (not isinstance(pair, dict) or set(pair) != {"budget_operation_id", "budget_reservation_id"}
+                or not isinstance(pair.get("budget_operation_id"), str) or len(pair["budget_operation_id"]) > 256
+                or re.fullmatch(r"presentation:[A-Za-z0-9_:-]+:[0-9]+", pair["budget_operation_id"]) is None
+                or not isinstance(pair.get("budget_reservation_id"), str)
+                or re.fullmatch(r"[A-Za-z0-9_-]{16}", pair["budget_reservation_id"]) is None):
+            raise PresentationBudgetError("budget_invalid_transition")
+        self.correlation = dict(pair)
         self._run = run
         self._receipt = admission["receipt"]
         self.operation = admission["operation"]
