@@ -1,8 +1,8 @@
 """Offline-only tests: no provider, database, or HTTP connections."""
 import asyncio
 import base64
-import hashlib
-import hmac
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 import io
 import json
 import threading
@@ -13,7 +13,9 @@ from urllib.error import HTTPError
 from utils.budget import BudgetCallback, PresentationBudget, PresentationBudgetError, verify_capability
 
 
-SECRET = "offline-presenton-budget-secret-at-least-32-bytes"
+SIGNING_KEY = Ed25519PrivateKey.generate()
+SECRET = SIGNING_KEY.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode()
+OTHER_PUBLIC_KEY = Ed25519PrivateKey.generate().public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode()
 NOW = 1_000_000
 
 
@@ -23,12 +25,11 @@ def capability(**overrides):
                   runId="execution:build", issuedAt=NOW, expiresAt=NOW + 3_600_000)
     claims.update(overrides)
     payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
-    key = hmac.new(SECRET.encode(), b"nevel/budget-bridge/v1", hashlib.sha256).digest()
-    signature = base64.urlsafe_b64encode(hmac.new(key, f"nbgt1.{payload}".encode(), hashlib.sha256).digest()).decode().rstrip("=")
-    return f"nbgt1.{payload}.{signature}"
+    signature = base64.urlsafe_b64encode(SIGNING_KEY.sign(f"nbgt2.{payload}".encode())).decode().rstrip("=")
+    return f"nbgt2.{payload}.{signature}"
 
 
-RECEIPT = "nbgt1.offline." + "s" * 43
+RECEIPT = "nbgt2.offline." + "s" * 86
 USAGE = dict(modelId="gpt-5.6-luna", serviceTier="default", inputTokens=1000, cachedTokens=100, cacheWriteTokens=200, outputTokens=100, searchCalls=0)
 
 
@@ -49,6 +50,17 @@ def fixture(mode="enforce", callback=None):
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_old_envelopes_private_keys_and_jwt_fallback_are_rejected(self):
+        from cryptography.hazmat.primitives.serialization import PrivateFormat, NoEncryption
+        private = SIGNING_KEY.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode()
+        for token, key in [(capability().replace("nbgt2.", "nbgt1."), SECRET),
+                           (capability(), private), (capability(), "offline-jwt-secret")]:
+            with self.assertRaises(PresentationBudgetError):
+                verify_capability(token, key, NOW)
+        with patch.dict("os.environ", {"JWT_SECRET": SECRET, "NEVEL_BUDGET_PUBLIC_KEY": ""}):
+            with self.assertRaises(PresentationBudgetError):
+                PresentationBudget(capability(), callback=Mock(), now_ms=NOW)
+
     def test_validates_signature_tool_subject_time_and_mode(self):
         self.assertEqual(verify_capability(capability(), SECRET, NOW)["tool"], "presentation")
         for values in [{"tool": "deep_research"}, {"mode": "off"}, {"version": True}, {"kind": "receipt"},
@@ -57,7 +69,7 @@ class CapabilityTests(unittest.TestCase):
             with self.subTest(values=values), self.assertRaises(PresentationBudgetError):
                 verify_capability(capability(**values), SECRET, NOW)
         with self.assertRaises(PresentationBudgetError):
-            verify_capability(capability(), SECRET + "wrong", NOW)
+            verify_capability(capability(), OTHER_PUBLIC_KEY, NOW)
 
     def test_callback_url_is_private_and_exact(self):
         BudgetCallback("http://ui.default.svc.cluster.local/api/internal/budget/operations")
@@ -96,7 +108,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(PresentationBudgetError):
                 PresentationBudget(capability(), secret=SECRET, now_ms=NOW)
             with self.assertRaises(PresentationBudgetError):
-                PresentationBudget(capability(mode="shadow"), secret=SECRET + "wrong", now_ms=NOW)
+                PresentationBudget(capability(mode="shadow"), secret=OTHER_PUBLIC_KEY, now_ms=NOW)
 
     async def test_reserves_unique_steps_then_observes_and_finalizes_exactly_once(self):
         run, calls = fixture()

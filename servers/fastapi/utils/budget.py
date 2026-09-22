@@ -4,8 +4,8 @@ from __future__ import annotations
 import asyncio
 import base64
 from contextvars import ContextVar
-import hashlib
-import hmac
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 import json
 import logging
 import os
@@ -27,7 +27,7 @@ class PresentationBudgetError(RuntimeError):
 
 
 def credential(value):
-    return isinstance(value, str) and len(value) <= 2048 and re.fullmatch(r"nbgt1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}", value) is not None
+    return isinstance(value, str) and len(value) <= 2048 and re.fullmatch(r"nbgt2\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}", value) is not None
 
 
 def verify_capability(token, secret, now_ms=None):
@@ -35,10 +35,11 @@ def verify_capability(token, secret, now_ms=None):
         if not credential(token) or not isinstance(secret, str) or len(secret) < 32:
             raise ValueError()
         envelope, payload, signature = token.split(".")
-        key = hmac.new(secret.encode(), b"nevel/budget-bridge/v1", hashlib.sha256).digest()
-        expected = base64.urlsafe_b64encode(hmac.new(key, f"{envelope}.{payload}".encode(), hashlib.sha256).digest()).decode().rstrip("=")
-        if not hmac.compare_digest(expected, signature):
+        key = load_pem_public_key(secret.encode())
+        raw_signature = base64.urlsafe_b64decode(signature + "==")
+        if not isinstance(key, Ed25519PublicKey) or base64.urlsafe_b64encode(raw_signature).decode().rstrip("=") != signature:
             raise ValueError()
+        key.verify(raw_signature, f"{envelope}.{payload}".encode())
         claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
         if not isinstance(claims, dict) or set(claims) != {"version", "kind", "tool", "subject", "runId", "mode", "issuedAt", "expiresAt"}:
             raise ValueError()
@@ -114,7 +115,7 @@ async def _drain(task):
 
 class PresentationBudget:
     def __init__(self, token, *, callback=None, secret=None, now_ms=None):
-        claims = verify_capability(token, os.environ.get("JWT_SECRET", "") if secret is None else secret, now_ms)
+        claims = verify_capability(token, os.environ.get("NEVEL_BUDGET_PUBLIC_KEY", "") if secret is None else secret, now_ms)
         self.mode = claims["mode"]
         self._token = token
         try:

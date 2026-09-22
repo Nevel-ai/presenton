@@ -32,7 +32,7 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
             for native in sent:
                 self.assertEqual(native["metadata"]["tag"], "existing")
                 self.assertEqual(native["metadata"]["budget_reservation_id"], "reservation00001")
-                self.assertNotIn("nbgt1.", json.dumps(native))
+                self.assertNotIn("nbgt2.", json.dumps(native))
                 if mode == "shadow":
                     self.assertEqual(native["max_tokens"], 50)
                     self.assertNotIn("service_tier", native)
