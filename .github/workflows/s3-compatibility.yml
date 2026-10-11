@@ -1,0 +1,41 @@
+name: S3 compatibility
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/s3-compatibility.yml'
+      - 'Dockerfile*'
+      - 'scripts/export_s3_requirements.py'
+      - 'scripts/smoke-s3.py'
+      - 'servers/fastapi/pyproject.toml'
+      - 'servers/fastapi/uv.lock'
+      - 'servers/fastapi/requirements-s3.txt'
+      - 'servers/fastapi/utils/get_env.py'
+      - 'servers/fastapi/utils/s3_utils.py'
+      - 'servers/fastapi/tests/test_s3_utils.py'
+  push:
+    branches: [main, feat/new-limits, feat/selectel-s3-compat]
+
+permissions:
+  contents: read
+
+jobs:
+  s3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: servers/fastapi/requirements-s3.txt
+      - name: Install the same S3 graph as both Docker images
+        run: python -m pip install -r servers/fastapi/requirements-s3.txt -c servers/fastapi/requirements-s3.txt
+      - name: Verify dependency consistency
+        run: |
+          python -m pip check
+          python scripts/export_s3_requirements.py --check
+      - name: Test the real S3 configuration and helper without network access
+        working-directory: servers/fastapi
+        run: python -m unittest discover -s tests -p test_s3_utils.py -v

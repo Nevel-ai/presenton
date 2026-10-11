@@ -130,3 +130,47 @@ def get_object_storage_access_key_id_env():
 
 def get_object_storage_secret_access_key_env():
     return os.getenv("OBJECT_STORAGE_SECRET_ACCESS_KEY")
+
+
+def _get_object_storage_boolean(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    if value not in ("true", "false"):
+        raise ValueError(f"{name} must be true or false")
+    return value == "true"
+
+
+def get_object_storage_force_path_style_env() -> bool:
+    return _get_object_storage_boolean("OBJECT_STORAGE_FORCE_PATH_STYLE", True)
+
+
+def _get_object_storage_checksum_policy(name: str) -> str:
+    value = os.getenv(name, "when_supported")
+    if value not in ("when_supported", "when_required"):
+        raise ValueError(f"{name} must be when_supported or when_required")
+    return value
+
+
+def get_object_storage_request_checksum_calculation_env() -> str:
+    return _get_object_storage_checksum_policy(
+        "OBJECT_STORAGE_REQUEST_CHECKSUM_CALCULATION"
+    )
+
+
+def get_object_storage_response_checksum_validation_env() -> str:
+    return _get_object_storage_checksum_policy(
+        "OBJECT_STORAGE_RESPONSE_CHECKSUM_VALIDATION"
+    )
+
+
+def get_object_storage_transfer_max_concurrency_env() -> int:
+    name = "OBJECT_STORAGE_TRANSFER_MAX_CONCURRENCY"
+    value = os.getenv(name, "10")
+    if not value.isascii() or not value.isdecimal() or int(value) < 1:
+        raise ValueError(f"{name} must be a positive integer")
+    return int(value)
+
+
+def get_object_storage_transfer_use_threads_env() -> bool:
+    return _get_object_storage_boolean("OBJECT_STORAGE_TRANSFER_USE_THREADS", True)

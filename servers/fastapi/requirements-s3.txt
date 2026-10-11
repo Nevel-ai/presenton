@@ -1,0 +1,11 @@
+# Generated from uv.lock; do not edit by hand.
+# Regenerate: python scripts/export_s3_requirements.py
+# Verify: python scripts/export_s3_requirements.py --check
+# Used as requirements and constraints so later installs retain the S3 graph.
+boto3==1.43.111
+botocore==1.43.111
+jmespath==1.1.0
+python-dateutil==2.9.0.post0
+s3transfer==0.19.2
+six==1.17.0
+urllib3==2.5.0
