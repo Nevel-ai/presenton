@@ -31,7 +31,7 @@ RUN curl -fsSL https://ollama.com/install.sh | sh
 COPY servers/fastapi/requirements-s3.txt /tmp/requirements-s3.txt
 RUN pip install -r /tmp/requirements-s3.txt -c /tmp/requirements-s3.txt \
     aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
-    pathvalidate pdfplumber chromadb sqlmodel \
+    pathvalidate pdfplumber chromadb sqlmodel "sqlalchemy[asyncio]" greenlet \
     anthropic google-genai openai fastmcp dirtyjson
 RUN pip install -c /tmp/requirements-s3.txt docling --extra-index-url https://download.pytorch.org/whl/cpu
 
