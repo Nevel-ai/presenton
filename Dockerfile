@@ -28,10 +28,12 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
 # Install dependencies for FastAPI
-RUN pip install aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
-    pathvalidate pdfplumber chromadb sqlmodel \
-    anthropic google-genai openai fastmcp dirtyjson boto3>=1.35.0
-RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu
+COPY servers/fastapi/requirements-s3.txt /tmp/requirements-s3.txt
+RUN pip install -r /tmp/requirements-s3.txt -c /tmp/requirements-s3.txt \
+    aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
+    pathvalidate pdfplumber chromadb sqlmodel "sqlalchemy[asyncio]" greenlet \
+    anthropic google-genai openai fastmcp dirtyjson
+RUN pip install -c /tmp/requirements-s3.txt docling --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install dependencies for Next.js
 WORKDIR /app/servers/nextjs

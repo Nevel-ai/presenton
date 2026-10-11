@@ -53,9 +53,11 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 # RUN curl -fsSL http://ollama.com/install.sh | sh
 
 # Install dependencies for FastAPI
-RUN pip install aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
+COPY servers/fastapi/requirements-s3.txt /tmp/requirements-s3.txt
+RUN pip install -r /tmp/requirements-s3.txt -c /tmp/requirements-s3.txt \
+  aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
   pathvalidate pdfplumber chromadb sqlmodel \
-  anthropic google-genai openai fastmcp dirtyjson python-pptx docling boto3>=1.35.0
+  anthropic google-genai openai fastmcp dirtyjson python-pptx docling
 
 # Pre-install CPU-only PyTorch stack to avoid pulling CUDA dependencies
 # ENV PIP_DEFAULT_TIMEOUT=100

@@ -4,15 +4,21 @@ import os
 from typing import Optional
 
 import boto3
+from boto3.s3.transfer import TransferConfig
 from botocore.client import Config
 
 from utils.get_env import (
     get_object_storage_access_key_id_env,
     get_object_storage_bucket_name_env,
     get_object_storage_endpoint_env,
+    get_object_storage_force_path_style_env,
     get_object_storage_prefix_env,
     get_object_storage_region_env,
+    get_object_storage_request_checksum_calculation_env,
+    get_object_storage_response_checksum_validation_env,
     get_object_storage_secret_access_key_env,
+    get_object_storage_transfer_max_concurrency_env,
+    get_object_storage_transfer_use_threads_env,
 )
 
 _s3_client = None
@@ -34,7 +40,26 @@ def _build_s3_client():
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
         region_name=region,
-        config=Config(s3={"addressing_style": "path"}),
+        config=Config(
+            s3={
+                "addressing_style": (
+                    "path" if get_object_storage_force_path_style_env() else "virtual"
+                )
+            },
+            request_checksum_calculation=get_object_storage_request_checksum_calculation_env(),
+            response_checksum_validation=get_object_storage_response_checksum_validation_env(),
+        ),
+    )
+
+
+def _build_transfer_config() -> TransferConfig:
+    use_threads = get_object_storage_transfer_use_threads_env()
+    return TransferConfig(
+        max_concurrency=get_object_storage_transfer_max_concurrency_env(),
+        use_threads=use_threads,
+        # CRT ignores use_threads; an explicitly serial profile must use the
+        # classic transfer manager even if awscrt is installed in the image.
+        preferred_transfer_client="auto" if use_threads else "classic",
     )
 
 
@@ -82,7 +107,13 @@ def _upload_file_to_s3_sync(
     if content_type:
         extra_args["ContentType"] = content_type
 
-    client.upload_file(local_path, bucket, key, ExtraArgs=extra_args or None)
+    client.upload_file(
+        local_path,
+        bucket,
+        key,
+        ExtraArgs=extra_args or None,
+        Config=_build_transfer_config(),
+    )
 
     # We store and return only the S3 object key, not a public URL.
     return key
@@ -104,7 +135,8 @@ async def upload_file_to_s3(
             None, _upload_file_to_s3_sync, local_path, postfix
         )
     except Exception as e:
-        print(f"Error uploading file to S3: {e}")
+        # Transport errors may contain signed URLs; log only the exception class.
+        print(f"Error uploading file to S3 ({type(e).__name__})")
         return None
 
 
@@ -124,7 +156,9 @@ def _download_file_from_s3_sync(object_key: str, local_path: str) -> Optional[st
         return None
 
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
-    client.download_file(bucket, object_key, local_path)
+    client.download_file(
+        bucket, object_key, local_path, Config=_build_transfer_config()
+    )
     return local_path
 
 
@@ -139,5 +173,5 @@ async def download_file_from_s3(object_key: str, local_path: str) -> Optional[st
             None, _download_file_from_s3_sync, object_key, local_path
         )
     except Exception as e:
-        print(f"Error downloading file from S3: {e}")
+        print(f"Error downloading file from S3 ({type(e).__name__})")
         return None
